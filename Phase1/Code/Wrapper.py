@@ -105,6 +105,36 @@ def main():
 	fig.tight_layout()
 
 	plt.show()
+
+	"""
+	Feature Descriptors
+	Save Feature Descriptor output as FD.png
+	"""
+
+	corners = np.array([[20,20],[60,60],[150,150]])
+
+	img1 = cv2.imread('../Data/Train/Set1/1.jpg',cv2.IMREAD_GRAYSCALE)
+	featureVec1 = get_feature_vectors(img1)
+	print(featureVec1)
+
+	img2 = cv2.imread('../Data/Train/Set1/1.jpg',cv2.IMREAD_GRAYSCALE)
+	featureVec2 = get_feature_vectors(img2)
+	print(featureVec2)
+
+	"""
+	Feature Matching
+	Save Feature Matching output as matching.png
+
+	"""
+	"""
+	Refine: RANSAC, Estimate Homography
+	"""
+
+
+	"""
+	Image Warping + Blending
+	Save Panorama output as mypano.png
+	"""
 	"""
 	Perform ANMS: Adaptive Non-Maximal Suppression
 	Save ANMS output as anms.png
@@ -142,37 +172,6 @@ def applyANMS(img1, nbest):
 	for r in rcord:
 		result.append(r[1])
 	return np.asarray(result)
-
-	"""
-	Feature Descriptors
-	Save Feature Descriptor output as FD.png
-	"""
-
-	corners = np.array([[20,20],[60,60],[150,150]])
-
-	img1 = cv2.imread('../Data/Train/Set1/1.jpg',cv2.IMREAD_GRAYSCALE)
-	featureVec = get_feature_vectors(img1)
-	print(featureVec1)
-
-	img2 = cv2.imread('../Data/Train/Set1/1.jpg',cv2.IMREAD_GRAYSCALE)
-	featureVec2 = get_feature_vectors(img2)
-	print(featureVec2)
-
-	"""
-	Feature Matching
-	Save Feature Matching output as matching.png
-
-	"""
-	"""
-	Refine: RANSAC, Estimate Homography
-	"""
-
-
-	"""
-	Image Warping + Blending
-	Save Panorama output as mypano.png
-	"""
-
     
 if __name__ == '__main__':
     main()
