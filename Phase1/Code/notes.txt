@@ -1,0 +1,3 @@
+ANMS:
+
+If there are 3 points in a cluster, 2 points in a cluster and 1 lone point. The lone point will have maximum r value. In 2 points cluster the one with maximum intensity will have lower r value than the second one. The second will have r value from next nearest point(not the one in the cluster). Similarly for the three points in the other cluster. So when we sort r array in decreasing value it will first pick the lone value, then one from each cluster as top 3 values.
