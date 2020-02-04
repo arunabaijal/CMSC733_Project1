@@ -23,6 +23,7 @@ import scipy.ndimage.filters as sc
 from skimage.feature import peak_local_max
 import matplotlib.pyplot as plt
 import sys
+import random
 # Add any python libraries here
 
 
@@ -106,6 +107,32 @@ def match_features(featureVec1,featureVec2):
 # 		kp1.append([corners1[corner1_ind,0],corners1[corner1_ind,1]])
 # 		kp2.append([corners2[corner2_ind,0],corners2[corner2_ind,1]])
 
+
+def print_matches(newcords1,newcords2,matches,img1,img2):
+	corner1_keypoints = []
+	for cornerInd in range(newcords1.shape[0]):
+		corner1_keypoints.append(cv2.KeyPoint(newcords1[cornerInd, 1], newcords1[cornerInd, 0], 5))
+
+	corner2_keypoints = []
+	for cornerInd in range(newcords2.shape[0]):
+		corner2_keypoints.append(cv2.KeyPoint(newcords2[cornerInd, 1], newcords2[cornerInd, 0], 5))
+
+	# matches_keypoints = []
+	# for match in matches:
+	# 	matches_keypoints.append()
+	matchesImg = np.array([])
+	dmatchvec = []
+	for m in matches:
+		dmatchvec.append(cv2.DMatch(m[0], m[1], 1))
+
+	# print(corner1_keypoints, corner2_keypoints)
+	# print(dmatchvec)
+
+	matchesImg = cv2.drawMatches(img1, corner1_keypoints, img2, corner2_keypoints, dmatchvec, matchesImg)
+
+
+	cv2.imshow("Matched!!", matchesImg)
+	cv2.waitKey(0)
 
 def main():
 	# Add any Command Line arguments here
@@ -216,8 +243,9 @@ def main():
 		dmatchvec.append(cv2.DMatch(m[0], m[1], 1))
 
 	matchesImg = cv2.drawMatches(img1_color2,corner1_keypoints,img2_color,corner2_keypoints,dmatchvec,matchesImg)
-	cv2.imshow("MAtched", matchesImg)
-	cv2.waitKey(0)
+	# cv2.imshow("MAtched", matchesImg)
+	# cv2.waitKey(0)
+	ransac(matches, newcords1, newcords2, img1_color2, img2_color)
 	# print_matches(img1,img2,matches,corners1,corners2)
 
 	"""
@@ -267,6 +295,64 @@ def applyANMS(img1, nbest):
 	for r in rcord:
 		result.append(r[1])
 	return np.asarray(result)
+
+def ransac(matches, newcords1, newcords2, img1, img2):
+
+	dist_thresh = 10
+	n_matches_thresh = 0.9
+	nMatches = len(matches)
+	counter = 0
+	while (counter<200):
+		feature_pairs = random.sample(matches, k=4)
+		src_cords = []
+		dst_cords = []
+		for i in feature_pairs:
+			x1, y1 = newcords1[i[0]]
+			x2, y2 = newcords2[i[1]]
+			src_cords.append([x1, y1])
+			dst_cords.append([x2, y2])
+		src_cords = np.array(src_cords)
+		dst_cords = np.array(dst_cords)
+
+
+
+		# src_cords
+		h, status = cv2.findHomography(src_cords, dst_cords)
+
+		inliers_src = []
+		inliers_dst = []
+		matches_inliers = []
+		n_inliers = 0
+		for match in matches:
+			p1 = np.array([newcords1[match[0]][0],newcords1[match[0]][1],1])
+			# p2 = np.array([dst_cords[ind][0],dst_cords[ind][1]])
+
+			hp1 = np.matmul(h,p1)
+			hp1 = hp1/hp1[2]
+			dist = (hp1[0]-newcords2[match[1]][0])**2+(hp1[1]-newcords2[match[1]][1])**2
+			print(dist)
+			if dist<dist_thresh:
+				matches_inliers.append([n_inliers,n_inliers])
+				n_inliers += 1
+				inliers_src.append([newcords1[match[0]][0],newcords1[match[0]][1]])
+				inliers_dst.append([newcords2[match[1]][0],newcords2[match[1]][1]])
+		print('\n')
+		print(float(len(inliers_src))/len(matches))
+		if(float(len(inliers_src))/len(matches)>n_matches_thresh):
+			break
+		counter+=1
+	if(counter==200):
+		print('not found!!')
+	else:
+		print_matches(np.array(inliers_src), np.array(inliers_dst), matches_inliers, img1, img2)
+		h_final, status = cv2.findHomography(np.array(inliers_src), np.array(inliers_dst))
+		# print(h, status)
+		im_dst = cv2.warpPerspective(img1, h_final, (img1.shape[1], img1.shape[0]))
+		cv2.imshow("new image",im_dst)
+		cv2.imshow("img2", img2)
+		cv2.imshow("img1", img1)
+		cv2.waitKey(0)
+
     
 if __name__ == '__main__':
     main()
