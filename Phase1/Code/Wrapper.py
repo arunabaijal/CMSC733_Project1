@@ -86,6 +86,7 @@ def main():
 	img1_color2 = img1_color.copy()
 	img1 = np.float32(img1)
 	corner_img1 = cv2.cornerHarris(img1,2,3, 0.04)
+	print(len(corner_img1))
 	# cv2.imshow("corner_img",corner_img1)
 	# cv2.waitKey(0)
 	# result is dilated for marking the corners, not important
@@ -95,31 +96,31 @@ def main():
 	img1_color[corner_img1 > 0.008 * corner_img1.max()] = [0, 0, 255]
 	cv2.imwrite("cornerImage.jpg", img1_color)
 	newcords = applyANMS(corner_img1, 50)
-	fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
-	axes.imshow(img1_color2, cmap=plt.cm.gray)
-	axes.autoscale(False)
-	axes.plot(newcords[:, 1], newcords[:, 0], 'r.')
-	axes.axis('off')
-	axes.set_title('Peak local max')
-
-	fig.tight_layout()
-
-	plt.show()
+	# fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
+	# axes.imshow(img1_color2, cmap=plt.cm.gray)
+	# axes.autoscale(False)
+	# axes.plot(newcords[:, 1], newcords[:, 0], 'r.')
+	# axes.axis('off')
+	# axes.set_title('Peak local max')
+	#
+	# fig.tight_layout()
+	#
+	# plt.show()
 
 	"""
 	Feature Descriptors
 	Save Feature Descriptor output as FD.png
 	"""
 
-	corners = np.array([[20,20],[60,60],[150,150]])
-
-	img1 = cv2.imread('../Data/Train/Set1/1.jpg',cv2.IMREAD_GRAYSCALE)
-	featureVec1 = get_feature_vectors(img1)
-	print(featureVec1)
-
-	img2 = cv2.imread('../Data/Train/Set1/1.jpg',cv2.IMREAD_GRAYSCALE)
-	featureVec2 = get_feature_vectors(img2)
-	print(featureVec2)
+	# corners = np.array([[20,20],[60,60],[150,150]])
+	#
+	# img1 = cv2.imread('../Data/Train/Set1/1.jpg',cv2.IMREAD_GRAYSCALE)
+	# featureVec1 = get_feature_vectors(img1)
+	# print(featureVec1)
+	#
+	# img2 = cv2.imread('../Data/Train/Set1/1.jpg',cv2.IMREAD_GRAYSCALE)
+	featureVec2 = get_feature_vectors(img1, newcords)
+	# print(featureVec2)
 
 	"""
 	Feature Matching
@@ -147,6 +148,7 @@ def applyANMS(img1, nbest):
 	# Comparison between image_max and im to find the coordinates of local maxima
 	coordinates = peak_local_max(img1, min_distance=5)
 	Nstrong = len(coordinates)
+	print(Nstrong)
 	rcord = []
 	for i in range(Nstrong):
 		rcord.append([sys.maxsize,[coordinates[i][0],coordinates[i][1]]])
