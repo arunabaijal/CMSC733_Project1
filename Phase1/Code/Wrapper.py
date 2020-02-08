@@ -131,8 +131,8 @@ def print_matches(newcords1,newcords2,matches,img1,img2):
 	matchesImg = cv2.drawMatches(img1, corner1_keypoints, img2, corner2_keypoints, dmatchvec, matchesImg)
 
 
-	cv2.imshow("Matched!!", matchesImg)
-	cv2.waitKey(0)
+	# cv2.imshow("Matched!!", matchesImg)
+	# cv2.waitKey(0)
 
 def main():
 	# Add any Command Line arguments here
@@ -245,7 +245,19 @@ def main():
 	matchesImg = cv2.drawMatches(img1_color2,corner1_keypoints,img2_color,corner2_keypoints,dmatchvec,matchesImg)
 	# cv2.imshow("MAtched", matchesImg)
 	# cv2.waitKey(0)
-	ransac(matches, newcords1, newcords2, img1_color2, img2_color)
+	inliers_src, inliers_dst = ransac(matches, newcords1, newcords2, img1_color2, img2_color)
+	H = recalculate_homography(inliers_src, inliers_dst)
+	print(H)
+	identity_matrix = np.identity(3)
+	identity_matrix[0][2] = img1_color2.shape[0]
+	identity_matrix[1][2] = img1_color2.shape[1]
+	H = np.matmul(H, identity_matrix)
+	im_dst = cv2.warpPerspective(img1_color2, H, (img1_color2.shape[1], img1_color2.shape[0]))
+
+	cv2.imshow("new image",im_dst)
+	# cv2.imshow("img2", img2_color)
+	# cv2.imshow("img1", img1_color2)
+	cv2.waitKey(0)
 	# print_matches(img1,img2,matches,corners1,corners2)
 
 	"""
@@ -261,6 +273,17 @@ def main():
 	Perform ANMS: Adaptive Non-Maximal Suppression
 	Save ANMS output as anms.png
 	"""
+def recalculate_homography(inliers_src, inliers_dst):
+	A= []
+	for i in range(len(inliers_src)):
+		A.append([-inliers_src[i][0], -inliers_src[i][1], -1, 0, 0 ,0, inliers_src[i][0]*inliers_dst[i][0], inliers_src[i][1]*inliers_dst[i][0], inliers_dst[i][0]])
+		A.append([ 0, 0 ,0,-inliers_src[i][0], -inliers_src[i][1], -1, inliers_src[i][0]*inliers_dst[i][1], inliers_src[i][1]*inliers_dst[i][1], inliers_dst[i][1]])
+	s, v, vh = np.linalg.svd(A)
+	H = vh[-1,:]
+	H = H.reshape((3,3))
+	print(H)
+	return  H
+
 def applyANMS(img1, nbest):
 	#lm = sc.maximum_filter(cimg, size=20)
 	#mask = (cimg == lm)
@@ -299,7 +322,7 @@ def applyANMS(img1, nbest):
 def ransac(matches, newcords1, newcords2, img1, img2):
 
 	dist_thresh = 10
-	n_matches_thresh = 0.9
+	n_matches_thresh = 0.7
 	nMatches = len(matches)
 	counter = 0
 	while (counter<200):
@@ -311,13 +334,14 @@ def ransac(matches, newcords1, newcords2, img1, img2):
 			x2, y2 = newcords2[i[1]]
 			src_cords.append([x1, y1])
 			dst_cords.append([x2, y2])
-		src_cords = np.array(src_cords)
-		dst_cords = np.array(dst_cords)
+		src_cords = np.array(src_cords, dtype = "float32")
+		dst_cords = np.array(dst_cords, dtype = "float32")
 
 
 
 		# src_cords
-		h, status = cv2.findHomography(src_cords, dst_cords)
+		h = cv2.getPerspectiveTransform(src_cords, dst_cords)
+
 
 		inliers_src = []
 		inliers_dst = []
@@ -345,13 +369,15 @@ def ransac(matches, newcords1, newcords2, img1, img2):
 		print('not found!!')
 	else:
 		print_matches(np.array(inliers_src), np.array(inliers_dst), matches_inliers, img1, img2)
-		h_final, status = cv2.findHomography(np.array(inliers_src), np.array(inliers_dst))
-		# print(h, status)
-		im_dst = cv2.warpPerspective(img1, h_final, (img1.shape[1], img1.shape[0]))
-		cv2.imshow("new image",im_dst)
-		cv2.imshow("img2", img2)
-		cv2.imshow("img1", img1)
-		cv2.waitKey(0)
+
+		return inliers_src, inliers_dst
+		# h_final, status = cv2.findHomography(np.array(inliers_src), np.array(inliers_dst))
+		# # print(h, status)
+		# im_dst = cv2.warpPerspective(img1, h_final, (img1.shape[1], img1.shape[0]))
+		# cv2.imshow("new image",im_dst)
+		# cv2.imshow("img2", img2)
+		# cv2.imshow("img1", img1)
+		# cv2.waitKey(0)
 
     
 if __name__ == '__main__':
