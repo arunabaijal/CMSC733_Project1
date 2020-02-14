@@ -21,6 +21,7 @@ import numpy as np
 import cv2
 # Add any python libraries here
 from random import randrange
+import pickle
 
 def random_crop(img):
 	margin_x = 40
@@ -62,20 +63,27 @@ def gen_perturbed_corners(corners):
 	return new_corners
 
 def main():
-	img = cv2.imread('../Data/Train/1.jpg')
-	img = cv2.resize(img,(320,240))
-	cropped_img,intial_corners = random_crop(img)
-	# print('initial corners = ',intial_corners)
-	perturbed_corners = gen_perturbed_corners(intial_corners)
-   	# print('perturbed corners = ',perturbed_corners)
-   	h = cv2.getPerspectiveTransform(np.array(perturbed_corners, dtype = "float32"),np.array(intial_corners, dtype = "float32"))
-   	print(h)
-   	# h_inv = np.linalg.inv(h)
+	# with open('../Data/labels_homography_train', 'rb') as f:
+	# 	dict_labels = pickle.load(f)
+	dict_labels = {}
+	for k in range(100):
+		img = cv2.imread('../Data/Train/'+str(k+1)+'.jpg')
+		img = cv2.resize(img,(320,240))
+		cropped_img,intial_corners = random_crop(img)
+		perturbed_corners = gen_perturbed_corners(intial_corners)
+		h = cv2.getPerspectiveTransform(np.array(perturbed_corners, dtype = "float32"),np.array(intial_corners, dtype = "float32"))
+		# h_inv = np.linalg.inv(h)
 
-   	warpped_img = cv2.warpPerspective(img, h, (img.shape[1], img.shape[0]))
+		warpped_img = cv2.warpPerspective(img, h, (img.shape[1], img.shape[0]))
 
-   	transformed_image = get_transformed_image(warpped_img,intial_corners)
+		transformed_image = get_transformed_image(warpped_img,intial_corners)
+
+		cv2.imwrite('../Data/Train_Gen/'+str(k+1)+'_raw_image.jpg',cropped_img)
+		cv2.imwrite('../Data/Train_Gen/'+str(k+1)+'_warpped_image.jpg',transformed_image)
+		dict_labels[str(k+1)] = h.flatten()
+		with open('../Data/labels_homography_train', 'wb') as f:
+			pickle.dump(dict_labels, f)
 
 if __name__ == '__main__':
-    main()
+	main()
  
