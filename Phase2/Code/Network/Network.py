@@ -51,11 +51,11 @@ def HomographyModel(Img, ImageSize, MiniBatchSize):
     x = tf.contrib.layers.flatten(net)
 
     x = tf.layers.dense(inputs=x, name='fc_1',units=1024, activation=tf.nn.relu)
-    x = tf.layers.dense(inputs=x, name='fc_2',units=9, activation=None)
+    x = tf.layers.dense(inputs=x, name='fc_2',units=8, activation=None)
 
     prLogits = x
-    prSoftMax = tf.nn.softmax(x)
-    return prLogits, prSoftMax
+    # prSoftMax = tf.nn.softmax(x)
+    return prLogits
 
     # input_shape=(128, 128, 2)
     # input_img = Input(shape=input_shape)
