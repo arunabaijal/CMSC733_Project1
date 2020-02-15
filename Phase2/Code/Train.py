@@ -60,13 +60,13 @@ def SetupInputs(BasePath):
 	for k in range(NumTrainSamples):
 		TrainLabels.append(dict_labels[str(k+1)])
 		DirNamesTrain.append('Train_Gen/'+str(k+1))
-	NumClasses = 9
+	NumClasses = 8
 	SaveCheckPoint = 100
 	return DirNamesTrain, SaveCheckPoint, ImageSize, NumTrainSamples, TrainLabels, NumClasses
 
 
 def euclidean_distance(y_true, y_pred):
-	return K.sqrt(K.maximum(K.sum(K.square(y_pred - y_true), axis=-1, keepdims=True), K.epsilon()))
+	return (y_pred - y_true)
 	
 def GenerateBatch(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize):
 	"""
@@ -153,15 +153,18 @@ def TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, 
 	Saves Trained network in CheckPointPath and Logs to LogsPath
 	"""      
 	# Predict output with forward pass
-	prLogits, prSoftMax = HomographyModel(ImgPH, ImageSize, MiniBatchSize)
+	prLogits = HomographyModel(ImgPH, ImageSize, MiniBatchSize)
 
 	with tf.name_scope('Loss'):
 		###############################################
 		# Fill your loss function of choice here!
 		###############################################
 		# Change loss funciton to eucledian!!!
-		cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels = LabelPH, logits = prLogits)
-		loss = tf.reduce_mean(cross_entropy)
+		# cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels = LabelPH, logits = prLogits)
+		loss = tf.reduce_mean(tf.nn.l2_loss(prLogits-LabelPH))
+
+		# cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels = LabelPH, logits = prLogits)
+		# loss = tf.reduce_mean(cross_entropy)
 
 	with tf.name_scope('Adam'):
 		###############################################
@@ -169,10 +172,16 @@ def TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, 
 		###############################################
 		Optimizer = tf.train.AdamOptimizer(learning_rate = 1e-3).minimize(loss)
 
+	# with tf.name_scope('Accuracy'):
+	# 	prSoftMaxDecoded = tf.argmax(prSoftMax, axis=1)
+	# 	LabelDecoded = tf.argmax(LabelPH, axis=1)
+	# 	Acc = tf.reduce_mean(tf.cast(tf.math.equal(prSoftMaxDecoded, LabelDecoded), dtype=tf.float32))
+   
 
 	# Tensorboard
 	# Create a summary to monitor loss tensor
 	tf.summary.scalar('LossEveryIter', loss)
+	# tf.summary.scalar('Accuracy', Acc)
 	# tf.summary.image('Anything you want', AnyImg)
 	# Merge all summaries into a single operationgoogel
 	MergedSummaryOP = tf.summary.merge_all()
@@ -193,9 +202,13 @@ def TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, 
 
 		# Tensorboard
 		Writer = tf.summary.FileWriter(LogsPath, graph=tf.get_default_graph())
-			
+		
+		LossList = [] 
+		TrainingAccuracyList = [] 	
 		for Epochs in tqdm(range(StartEpoch, NumEpochs)):
 			NumIterationsPerEpoch = int(NumTrainSamples/MiniBatchSize/DivTrain)
+			# BatchAccuracies = []
+			BatchLosses = []
 			for PerEpochCounter in tqdm(range(NumIterationsPerEpoch)):
 				I1Batch, LabelBatch = GenerateBatch(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize)
 				# print('I1Batch')
@@ -203,20 +216,36 @@ def TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, 
 				# print('LabelBatch')
 				# print(LabelBatch)
 				FeedDict = {ImgPH: I1Batch, LabelPH: LabelBatch}
-				_, LossThisBatch, Summary = sess.run([Optimizer, loss, MergedSummaryOP], feed_dict=FeedDict)
-				
+				# _, LossThisBatch, Summary = sess.run([Optimizer, loss, MergedSummaryOP], feed_dict=FeedDict)
+				temp, LossThisBatch, Summary = sess.run([Optimizer, loss, MergedSummaryOP], feed_dict=FeedDict)
+				# batch_accuracy, temp, LossThisBatch, Summary = sess.run([Acc,Optimizer, loss, MergedSummaryOP], feed_dict=FeedDict)
+				# BatchAccuracies.append(float(batch_accuracy))
+				BatchLosses.append(float(LossThisBatch))
 				# Save checkpoint every some SaveCheckPoint's iterations
-				if PerEpochCounter % SaveCheckPoint == 0:
-					# Save the Model learnt in this epoch
-					SaveName =  CheckPointPath + str(Epochs) + 'a' + str(PerEpochCounter) + 'model.ckpt'
-					Saver.save(sess,  save_path=SaveName)
-					print('\n' + SaveName + ' Model Saved...')
+				# if PerEpochCounter % SaveCheckPoint == 0:
+				# 	# Save the Model learnt in this epoch
+				# 	SaveName =  CheckPointPath + str(Epochs) + 'a' + str(PerEpochCounter) + 'model.ckpt'
+				# 	Saver.save(sess,  save_path=SaveName)
+				# 	print('\n' + SaveName + ' Model Saved...')
 
 				# Tensorboard
 				Writer.add_summary(Summary, Epochs*NumIterationsPerEpoch + PerEpochCounter)
 				# If you don't flush the tensorboard doesn't update until a lot of iterations!
 				Writer.flush()
 
+			LossList.append(sum(BatchLosses)/len(BatchLosses))
+			# TrainingAccuracyList.append(sum(BatchAccuracies)/len(BatchAccuracies))
+			
+			# with open('TrainingData.pkl', 'wb') as f:
+			# 	pickle.dump([TrainingAccuracyList,LossList], f)
+
+			#plt.plot(LossList)
+			#plt.plot(TrainingAccuracyList)
+			#plt.show()
+
+			print('Epoch Loss = ',LossList[-1])
+			# print('Epoch Accuracy = ',TrainingAccuracyList[-1])
+			
 			# Save model every epoch
 			SaveName = CheckPointPath + str(Epochs) + 'model.ckpt'
 			Saver.save(sess, save_path=SaveName)
@@ -259,9 +288,9 @@ def main():
 
 	# Find Latest Checkpoint File
 	if LoadCheckPoint==1:
-	    LatestFile = FindLatestModel(CheckPointPath)
+		LatestFile = FindLatestModel(CheckPointPath)
 	else:
-	    LatestFile = None
+		LatestFile = None
 	
 	# Pretty print stats
 	PrettyPrint(NumEpochs, DivTrain, MiniBatchSize, NumTrainSamples, LatestFile)
@@ -271,8 +300,8 @@ def main():
 	LabelPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, NumClasses)) # OneHOT labels
 	
 	TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, ImageSize,
-	               NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
-	               DivTrain, LatestFile, BasePath, LogsPath, ModelType)
+				   NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
+				   DivTrain, LatestFile, BasePath, LogsPath, ModelType)
 		
 	
 if __name__ == '__main__':
