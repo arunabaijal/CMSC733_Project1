@@ -107,7 +107,7 @@ def match_features(featureVec1,featureVec2):
 # 		kp2.append([corners2[corner2_ind,0],corners2[corner2_ind,1]])
 
 
-def print_matches(newcords1,newcords2,matches,img1,img2):
+def print_matches(newcords1,newcords2,matches,img1,img2, filename):
 	corner1_keypoints = []
 	for cornerInd in range(newcords1.shape[0]):
 		# print("img1 keypoints",newcords1[cornerInd])
@@ -132,14 +132,14 @@ def print_matches(newcords1,newcords2,matches,img1,img2):
 	matchesImg = cv2.drawMatches(img1, corner1_keypoints, img2, corner2_keypoints, dmatchvec, matchesImg)
 
 
-	cv2.imshow("Matches after Ransac", matchesImg)
-	cv2.waitKey(0)
+	cv2.imwrite(filename, matchesImg)
+	# cv2.waitKey(0)
 
 def main():
 	# Add any Command Line arguments here
     # Parser = argparse.ArgumentParser()
     # Parser.add_argument('--NumFeatures', default=100, help='Number of best features to extract from each image, Default:100')
-    
+
     # Args = Parser.parse_args()
     # NumFeatures = Args.NumFeatures
 
@@ -170,30 +170,30 @@ def main():
 	# # Threshold for an optimal value, it may vary depending on the image.
 	# img1_color[corner_img1 > 0.008 * corner_img1.max()] = [0, 0, 255]
 	# cv2.imwrite("cornerImage.jpg", img1_color)
-	newcords1 = applyANMS(corner_img1, 50)
-	newcords2 = applyANMS(corner_img2, 50)
+	newcords1 = applyANMS(img1, 100)
+	newcords2 = applyANMS(img2, 100)
 
-	fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
-	axes.imshow(img1_color2, cmap=plt.cm.gray)
-	axes.autoscale(False)
-	axes.plot(newcords1[:, 1], newcords1[:, 0], 'r.')
-	axes.axis('off')
-	axes.set_title('1')
-
-	fig.tight_layout()
-
-	plt.show()
-
-	fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
-	axes.imshow(img2_color, cmap=plt.cm.gray)
-	axes.autoscale(False)
-	axes.plot(newcords2[:, 1], newcords2[:, 0], 'r.')
-	axes.axis('off')
-	axes.set_title('2')
-
-	fig.tight_layout()
-
-	plt.show()
+	# fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
+	# axes.imshow(img1_color2, cmap=plt.cm.gray)
+	# axes.autoscale(False)
+	# axes.plot(newcords1[:, 1], newcords1[:, 0], 'r.')
+	# axes.axis('off')
+	# axes.set_title('1')
+	#
+	# fig.tight_layout()
+	#
+	# plt.show()
+	#
+	# fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
+	# axes.imshow(img2_color, cmap=plt.cm.gray)
+	# axes.autoscale(False)
+	# axes.plot(newcords2[:, 1], newcords2[:, 0], 'r.')
+	# axes.axis('off')
+	# axes.set_title('2')
+	#
+	# fig.tight_layout()
+	#
+	# plt.show()
 
 	"""
 	Feature Descriptors
@@ -244,10 +244,9 @@ def main():
 		dmatchvec.append(cv2.DMatch(m[0], m[1], 1))
 
 	matchesImg = cv2.drawMatches(img1_color2,corner1_keypoints,img2_color,corner2_keypoints,dmatchvec,matchesImg)
-	cv2.imshow("Matches before ransac", matchesImg)
-	cv2.waitKey(0)
-	inliers_src, inliers_dst, matches_inliers = ransac(matches, newcords1, newcords2, img1_color2, img2_color)
-	# print_matches(np.array(inliers_src), np.array(inliers_dst), matches_inliers, img1_color2, img2_color)
+	cv2.imwrite("Matches_before_ ransac_Set1_1.png", matchesImg)
+	inliers_src, inliers_dst, matches_inliers = ransac(matches, newcords1, newcords2, 50, 0.46, 200)
+	print_matches(np.array(inliers_src), np.array(inliers_dst), matches_inliers, img1_color2, img2_color, "Matches_after_ ransac_Set1_1.png")
 	H = recalculate_homography(inliers_src, inliers_dst)
 	# print(H)
 	# identity_matrix = np.identity(3)
@@ -277,7 +276,7 @@ def main():
 	# img1 = np.pad(img1, ((translation_y,0),(translation_x,0)), mode = 'constant')
 	# cv2.imwrite("paddedImage.png", img1)
 	warped = cv2.warpPerspective(src=img1_color2, M=H, dsize=(int(totalx),int(totaly)))
-	cv2.imwrite("Warped.png",warped)
+	# cv2.imwrite("Warped_set1_12.png",warped)
 	# print(img1_color2.shape)
 	for i in inliers_src:
 		i.append(1)
@@ -344,8 +343,8 @@ def main():
 	# warped_mixed_clone = cv2.seamlessClone(img2_color, warped, mask, center, cv2.MIXED_CLONE)
 	# cv2.imshow("Seamless clone", warped_mixed_clone)
 	# cv2.waitKey(0)
-	cv2.imshow("Final warped", warped)
-	cv2.waitKey(0)
+	cv2.imwrite("Pano_Set1_12.png", warped)
+	# cv2.waitKey(0)
 	img3 = cv2.imread("../Data/Train/Set1/3.jpg", 0)
 	img3_color = cv2.imread("../Data/Train/Set1/3.jpg", 1)
 	img3 = np.float32(img3)
@@ -355,16 +354,37 @@ def main():
 	corner_img_warped = cv2.cornerHarris(warpedGray, 2, 3, 0.04)
 	corner_img3 = cv2.dilate(corner_img3, None)
 	corner_img_warped = cv2.dilate(corner_img_warped, None)
-	newcords3 = applyANMS(corner_img3, 50)
-	newcords_warped = applyANMS(corner_img_warped, 50)
+	newcords3 = applyANMS(img3, 100)
+	newcords_warped = applyANMS(warpedGray, 100)
 	featureVec_warped = get_feature_vectors(warpedGray, newcords_warped)
 	featureVec3 = get_feature_vectors(img3, newcords3)
 	matches3 = match_features(featureVec_warped, featureVec3)
 	print("matches", matches3)
 	print("newcords_warped", newcords_warped)
 	print("newcords3", newcords3)
-	inliers_src3, inliers_dst3, matches_inliers3 = ransac(matches3, newcords_warped, newcords3, warped, img3_color)
 
+	corner1_keypoints = []
+	for cornerInd in range(newcords_warped.shape[0]):
+		corner1_keypoints.append(cv2.KeyPoint(newcords_warped[cornerInd, 1], newcords_warped[cornerInd, 0], 5))
+
+	corner2_keypoints = []
+	for cornerInd in range(newcords3.shape[0]):
+		corner2_keypoints.append(cv2.KeyPoint(newcords3[cornerInd, 1], newcords3[cornerInd, 0], 5))
+
+	# matches_keypoints = []
+	# for match in matches:
+	# 	matches_keypoints.append()
+	matchesImg3 = np.array([])
+	dmatchvec = []
+	for m in matches3:
+		dmatchvec.append(cv2.DMatch(m[0], m[1], 1))
+
+	matchesImg3 = cv2.drawMatches(warped, corner1_keypoints, img3_color, corner2_keypoints, dmatchvec, matchesImg3)
+	cv2.imwrite("Matches_before_ ransac_Set1_3.png", matchesImg3)
+
+	inliers_src3, inliers_dst3, matches_inliers3 = ransac(matches3, newcords_warped, newcords3, 50, 0.46, 200)
+	print_matches(np.array(inliers_src3), np.array(inliers_dst3), matches_inliers3, warped, img3_color,
+				  "Matches_after_ ransac_Set1_3.png")
 	H3 = recalculate_homography(inliers_src3, inliers_dst3)
 	pts = [[0, 0, warped.shape[1]-1, warped.shape[1]-1], [0, warped.shape[0]-1, 0, warped.shape[0]-1], [1, 1, 1, 1]]
 	ptsWarped = np.matmul(H3, pts)
@@ -433,8 +453,8 @@ def main():
 			img2Y = y - yShift
 			val = img3_color[img2Y, img2X, :]
 			warped3[y, x, :] = val
-	cv2.imshow("warped_final_3", warped3)
-	cv2.waitKey(0)
+	cv2.imwrite("final_pano_set1.png", warped3)
+	# cv2.waitKey(0)
 	# fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
 	# axes.imshow(img3_color, cmap=plt.cm.gray)
 	# axes.autoscale(False)
@@ -605,26 +625,29 @@ def recalculate_homography(inliers_src, inliers_dst):
 	return  H
 
 def applyANMS(img1, nbest):
+	coordinates = cv2.goodFeaturesToTrack(img1, nbest, 0.08, 5)
+	# print(coordinates)
 	#lm = sc.maximum_filter(cimg, size=20)
 	#mask = (cimg == lm)
 	# image_max = sc.maximum_filter(img1, size=20, mode='constant')
 
 	# Comparison between image_max and im to find the coordinates of local maxima
-	coordinates = peak_local_max(img1, min_distance=5)
+	# coordinates = peak_local_max(img1, min_distance=5)
 	Nstrong = len(coordinates)
 	# print(Nstrong)
 	rcord = []
+	eucDist = 0
 	for i in range(Nstrong):
-		rcord.append([sys.maxsize,[coordinates[i][0],coordinates[i][1]]])
-	for i in range(Nstrong-1):
-		for j in range(i+1,Nstrong):
-			xi = coordinates[i][0]
-			yi = coordinates[i][1]
-			xj = coordinates[j][0]
-			yj = coordinates[j][1]
+		rcord.append([sys.maxsize,[coordinates[i][0][0],coordinates[i][0][1]]])
+	for i in range(Nstrong):
+		for j in range(Nstrong):
+			yi = int(coordinates[i][0][0])
+			xi = int(coordinates[i][0][1])
+			yj = int(coordinates[j][0][0])
+			xj = int(coordinates[j][0][1])
 			# print(xj, yj, xi, yi)
-			#if img1[xj][yj] > img1[xi][yi]:
-			eucDist = (xj-xi)**2 + (yj-yi)**2
+			if img1[xj][yj] > img1[xi][yi]:
+				eucDist = (xj-xi)**2 + (yj-yi)**2
 			if eucDist < rcord[i][0]:
 				rcord[i][0] = eucDist
 				rcord[i][1] = [xi,yi]
@@ -637,13 +660,13 @@ def applyANMS(img1, nbest):
 		result.append(r[1])
 	return np.asarray(result)
 
-def ransac(matches, newcords1, newcords2, img1, img2):
+def ransac(matches, newcords1, newcords2, dist_thresh, n_matches_thresh, counter_thresh):
 
-	dist_thresh = 10
-	n_matches_thresh = 0.46
+	dist_thresh = dist_thresh
+	n_matches_thresh = n_matches_thresh
 	nMatches = len(matches)
 	counter = 0
-	while (counter<200):
+	while (counter<counter_thresh):
 		feature_pairs = random.sample(matches, k=4)
 		src_cords = []
 		dst_cords = []
@@ -674,7 +697,7 @@ def ransac(matches, newcords1, newcords2, img1, img2):
 			dist = (hp1[0]-newcords2[match[1]][1])**2+(hp1[1]-newcords2[match[1]][0])**2
 			# print(dist)
 			if dist<dist_thresh:
-				# print("Matched", dist)
+				print("Matched", dist)
 				matches_inliers.append([n_inliers,n_inliers])
 				n_inliers += 1
 				inliers_src.append([newcords1[match[0]][1],newcords1[match[0]][0]])
@@ -698,7 +721,7 @@ def ransac(matches, newcords1, newcords2, img1, img2):
 		# cv2.imshow("img1", img1)
 		# cv2.waitKey(0)
 
-    
+
 if __name__ == '__main__':
     main()
- 
+
