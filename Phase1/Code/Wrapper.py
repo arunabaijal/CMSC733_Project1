@@ -158,20 +158,20 @@ def main():
 	img1_color2 = img1_color.copy()
 	img1 = np.float32(img1)
 	img2 = np.float32(img2)
-	corner_img1 = cv2.cornerHarris(img1,2,3, 0.04)
-	corner_img2 = cv2.cornerHarris(img2,2,3, 0.04)
-	print(len(corner_img1))
+	# corner_img1 = cv2.cornerHarris(img1,2,3, 0.04)
+	# corner_img2 = cv2.cornerHarris(img2,2,3, 0.04)
+	# print(len(corner_img1))
 	# cv2.imshow("corner_img",corner_img1)
 	# cv2.waitKey(0)
 	# result is dilated for marking the corners, not important
-	corner_img1 = cv2.dilate(corner_img1, None)
-	corner_img2 = cv2.dilate(corner_img2, None)
+	# corner_img1 = cv2.dilate(corner_img1, None)
+	# corner_img2 = cv2.dilate(corner_img2, None)
 
 	# # Threshold for an optimal value, it may vary depending on the image.
 	# img1_color[corner_img1 > 0.008 * corner_img1.max()] = [0, 0, 255]
 	# cv2.imwrite("cornerImage.jpg", img1_color)
-	newcords1 = applyANMS(img1, 100)
-	newcords2 = applyANMS(img2, 100)
+	newcords1 = applyANMS(img1, 200)
+	newcords2 = applyANMS(img2, 200)
 
 	# fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
 	# axes.imshow(img1_color2, cmap=plt.cm.gray)
@@ -245,7 +245,7 @@ def main():
 
 	matchesImg = cv2.drawMatches(img1_color2,corner1_keypoints,img2_color,corner2_keypoints,dmatchvec,matchesImg)
 	cv2.imwrite("Matches_before_ ransac_Set1_1.png", matchesImg)
-	inliers_src, inliers_dst, matches_inliers = ransac(matches, newcords1, newcords2, 50, 0.46, 200)
+	inliers_src, inliers_dst, matches_inliers = ransac(matches, newcords1, newcords2, 50, 0.4, 600)
 	print_matches(np.array(inliers_src), np.array(inliers_dst), matches_inliers, img1_color2, img2_color, "Matches_after_ ransac_Set1_1.png")
 	H = recalculate_homography(inliers_src, inliers_dst)
 	# print(H)
@@ -276,7 +276,7 @@ def main():
 	# img1 = np.pad(img1, ((translation_y,0),(translation_x,0)), mode = 'constant')
 	# cv2.imwrite("paddedImage.png", img1)
 	warped = cv2.warpPerspective(src=img1_color2, M=H, dsize=(int(totalx),int(totaly)))
-	# cv2.imwrite("Warped_set1_12.png",warped)
+	# cv2.imwrite("Warped_Set1_12.png",warped)
 	# print(img1_color2.shape)
 	for i in inliers_src:
 		i.append(1)
@@ -348,14 +348,14 @@ def main():
 	img3 = cv2.imread("../Data/Train/Set1/3.jpg", 0)
 	img3_color = cv2.imread("../Data/Train/Set1/3.jpg", 1)
 	img3 = np.float32(img3)
-	corner_img3 = cv2.cornerHarris(img3, 2, 3, 0.04)
+	# corner_img3 = cv2.cornerHarris(img3, 2, 3, 0.04)
 	warpedGray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
 	warpedGray = np.float32(warpedGray)
-	corner_img_warped = cv2.cornerHarris(warpedGray, 2, 3, 0.04)
-	corner_img3 = cv2.dilate(corner_img3, None)
-	corner_img_warped = cv2.dilate(corner_img_warped, None)
-	newcords3 = applyANMS(img3, 100)
-	newcords_warped = applyANMS(warpedGray, 100)
+	# corner_img_warped = cv2.cornerHarris(warpedGray, 2, 3, 0.04)
+	# corner_img3 = cv2.dilate(corner_img3, None)
+	# corner_img_warped = cv2.dilate(corner_img_warped, None)
+	newcords3 = applyANMS(img3, 200)
+	newcords_warped = applyANMS(warpedGray, 200)
 	featureVec_warped = get_feature_vectors(warpedGray, newcords_warped)
 	featureVec3 = get_feature_vectors(img3, newcords3)
 	matches3 = match_features(featureVec_warped, featureVec3)
@@ -382,7 +382,7 @@ def main():
 	matchesImg3 = cv2.drawMatches(warped, corner1_keypoints, img3_color, corner2_keypoints, dmatchvec, matchesImg3)
 	cv2.imwrite("Matches_before_ ransac_Set1_3.png", matchesImg3)
 
-	inliers_src3, inliers_dst3, matches_inliers3 = ransac(matches3, newcords_warped, newcords3, 50, 0.46, 200)
+	inliers_src3, inliers_dst3, matches_inliers3 = ransac(matches3, newcords_warped, newcords3, 50, 0.4, 600)
 	print_matches(np.array(inliers_src3), np.array(inliers_dst3), matches_inliers3, warped, img3_color,
 				  "Matches_after_ ransac_Set1_3.png")
 	H3 = recalculate_homography(inliers_src3, inliers_dst3)
@@ -453,7 +453,7 @@ def main():
 			img2Y = y - yShift
 			val = img3_color[img2Y, img2X, :]
 			warped3[y, x, :] = val
-	cv2.imwrite("final_pano_set1.png", warped3)
+	cv2.imwrite("final_pano_Set1.png", warped3)
 	# cv2.waitKey(0)
 	# fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
 	# axes.imshow(img3_color, cmap=plt.cm.gray)
@@ -707,7 +707,7 @@ def ransac(matches, newcords1, newcords2, dist_thresh, n_matches_thresh, counter
 		if(float(len(inliers_src))/len(matches)>n_matches_thresh):
 			break
 		counter+=1
-	if(counter==200):
+	if(counter==counter_thresh):
 		print('not found!!')
 	else:
 		# print_matches(np.array(inliers_src), np.array(inliers_dst), matches_inliers, img1, img2)
