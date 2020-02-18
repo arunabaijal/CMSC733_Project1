@@ -50,6 +50,7 @@ def HomographyModel(Img, ImageSize, MiniBatchSize):
 
     x = tf.contrib.layers.flatten(net)
 
+    x = tf.nn.dropout(x,0.5)
     x = tf.layers.dense(inputs=x, name='fc_1',units=1024, activation=tf.nn.relu)
     x = tf.layers.dense(inputs=x, name='fc_2',units=8, activation=None)
 
