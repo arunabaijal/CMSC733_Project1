@@ -66,7 +66,7 @@ def main():
 	# with open('../Data/labels_homography_train', 'rb') as f:
 	# 	dict_labels = pickle.load(f)
 	dict_labels = {}
-	for k in range(1000):
+	for k in range(5000):
 		img = cv2.imread('../Data/Train/'+str(k+1)+'.jpg')
 		img = cv2.resize(img,(320,240))
 		cropped_img,intial_corners = random_crop(img)
@@ -88,4 +88,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
- 
