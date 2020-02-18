@@ -4,4 +4,8 @@ If there are 3 points in a cluster, 2 points in a cluster and 1 lone point. The 
 
 Set 1 and 2:
 ANMS 200
-Ransac 50 0.4 600
+Ransac 70 0.4 900
+
+Set 3:
+ANMS 200
+Ransac 70 0.25 900
