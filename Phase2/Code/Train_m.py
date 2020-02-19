@@ -20,7 +20,7 @@ from Network.Network import  HomographyModel
 #from Misc.DataUtils import *
 import numpy as np
 import argparse
-from StringIO import StringIO
+# from StringIO import StringIO
 from termcolor import colored, cprint
 import math as m
 from tqdm import tqdm
@@ -32,7 +32,7 @@ import numpy as np
 import time
 import argparse
 import shutil
-from StringIO import StringIO
+# from StringIO import StringIO
 import string
 from termcolor import colored, cprint
 import math as m

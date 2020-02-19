@@ -70,11 +70,11 @@ def getImages(cropSize,rho,resize,dataList,numTrainData,saveDest):
         #stack images on top of each other.
         stackedData=np.dstack((patchA,patchB))
         #homogrpahy check
-        orig=cv2.warpPerspective(patchB,hAB,(128,128))
-        plt.subplot(1,2,1)
-        plt.imshow(patchA)
-        plt.subplot(1,2,2)
-        plt.imshow(patchB)
+        # orig=cv2.warpPerspective(patchB,hAB,(128,128))
+        # plt.subplot(1,2,1)
+        # plt.imshow(patchA)
+        # plt.subplot(1,2,2)
+        # plt.imshow(patchB)
         if(i%3000==0):
             print('Saved '+str(i)+' images')
         saveData(saveDest,[stackedData,H4pts],i)
