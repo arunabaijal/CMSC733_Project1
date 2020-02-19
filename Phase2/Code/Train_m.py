@@ -295,7 +295,7 @@ def TrainOperationSupervised(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrai
 
 		# Tensorboard
 		Writer = tf.summary.FileWriter(LogsPath, graph=tf.get_default_graph())
-			
+		LossList = []
 		for Epochs in tqdm(range(StartEpoch, NumEpochs)):
 			NumIterationsPerEpoch = int(NumTrainSamples/MiniBatchSize/DivTrain)
 			appendAcc=[]
