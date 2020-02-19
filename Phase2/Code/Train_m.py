@@ -299,13 +299,13 @@ def TrainOperationSupervised(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrai
 		for Epochs in tqdm(range(StartEpoch, NumEpochs)):
 			NumIterationsPerEpoch = int(NumTrainSamples/MiniBatchSize/DivTrain)
 			appendAcc=[]
-			appendLoss=[]
+			BatchLosses=[]
 			for PerEpochCounter in tqdm(range(NumIterationsPerEpoch)):
 				I1Batch, LabelBatch = GenerateBatchSupervised(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize,NumTrainImages)
 				FeedDict = {ImgPH: I1Batch, LabelPH: LabelBatch}
 				_, LossThisBatch, Summary = sess.run([Optimizer, loss, MergedSummaryOP], feed_dict=FeedDict)
 				#print(shapeH4pt,shapeLabel).
-				appendLoss.append(LossThisBatch)
+				BatchLosses.append(LossThisBatch)
 				
 				# Save checkpoint every some SaveCheckPoint's iterations
 				if PerEpochCounter % SaveCheckPoint == 0:
@@ -319,7 +319,10 @@ def TrainOperationSupervised(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrai
 				# If you don't flush the tensorboard doesn't update until a lot of iterations!
 				Writer.flush()
 			
-			print(np.mean(appendLoss))
+			LossList.append(sum(BatchLosses)/len(BatchLosses))
+			with open('TrainingLossData_m.pkl', 'wb') as f:
+				pickle.dump([LossList], f)
+			# print(np.mean(appendLoss))
 			# Save model every epoch
 			SaveName = CheckPointPath + str(Epochs) + 'model.ckpt'
 			Saver.save(sess, save_path=SaveName)
