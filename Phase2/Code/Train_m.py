@@ -145,7 +145,6 @@ def GenerateBatchUnsupervised(BasePath, DirNamesTrain, TrainLabels, ImageSize, M
 		IABatch.append(Ia)
 		cornerBatch.append(labelRegress)
 
-		
 	return stackedDataBatch, IABatch , cornerBatch
 
 
@@ -184,7 +183,8 @@ def TrainOperationUnsupervised(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,Nu
 	# MergedSummaryOP = tf.summary.merge_all()
 
 	# Setup Saver
-	Saver = tf.train.Saver()
+	# Saver = tf.train.Saver()
+	Saver = tf.train.Saver(max_to_keep=NumEpochs)
 	with tf.Session() as sess:       
 		if LatestFile is not None:
 			Saver.restore(sess, CheckPointPath + LatestFile + '.ckpt')
@@ -212,11 +212,11 @@ def TrainOperationUnsupervised(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,Nu
 				Loss.append(LossThisBatch)
 				epoch_loss = epoch_loss + LossThisBatch
 				# Save checkpoint every some SaveCheckPoint's iterations
-				if PerEpochCounter % SaveCheckPoint == 0:
-					# Save the Model learnt in this epoch
-					SaveName =  CheckPointPath + str(Epochs) + 'a' + str(PerEpochCounter) + 'model.ckpt'
-					Saver.save(sess,  save_path=SaveName)
-					print('\n' + SaveName + ' Model Saved...')
+				# if PerEpochCounter % SaveCheckPoint == 0:
+				# 	# Save the Model learnt in this epoch
+				# 	SaveName =  CheckPointPath + str(Epochs) + 'a' + str(PerEpochCounter) + 'model.ckpt'
+				# 	Saver.save(sess,  save_path=SaveName)
+				# 	print('\n' + SaveName + ' Model Saved...')
 
 				# Tensorboard
 				Writer.add_summary(Summary, Epochs*NumIterationsPerEpoch + PerEpochCounter)
