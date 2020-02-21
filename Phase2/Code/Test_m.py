@@ -98,10 +98,10 @@ def getImages(firstImage,secondImage,saveDest,ModelPath):
         #print(PredT,label)
         #loss=np.sqrt(np.mean((PredT-label)**2))
         #print(loss)
-        plt.subplot(2,1,1)
-        plt.imshow(image[:,:,0])
-        plt.subplot(2,1,2)
-        plt.imshow(image[:,:,1])
+        #plt.subplot(2,1,1)
+        #plt.imshow(image[:,:,0])
+        #plt.subplot(2,1,2)
+        #plt.imshow(image[:,:,1])
     
     newPointsDiff=PredT.reshape(4,2)
     print(newPointsDiff)
@@ -143,8 +143,8 @@ def main():
     
     Parser = argparse.ArgumentParser()
     
-    Parser.add_argument('--Image', default='/home/kartikmadhira/CMSC733/YourDirectoryID_p1/Phase2/Data/Val/1.jpg', help='Images')
-    Parser.add_argument('--ModelPath', default='/home/kartikmadhira/CMSC733/YourDirectoryID_p1/Phase2/Checkpoints/169model.ckpt', help='Path to save Checkpoints, Default: ../Checkpoints/')
+    Parser.add_argument('--Image', default='../Data/Val/101.jpg', help='Images')
+    Parser.add_argument('--ModelPath', default='../Checkpoints/49model.ckpt', help='Path to save Checkpoints, Default: ../Checkpoints/')
     Parser.add_argument('--ModelType', default='Sup', help='Model type, Supervised or Unsupervised? Choose from Sup and Unsup, Default:Unsup')
     
     

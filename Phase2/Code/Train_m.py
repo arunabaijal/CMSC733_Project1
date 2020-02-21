@@ -38,6 +38,7 @@ from termcolor import colored, cprint
 import math as m
 from tqdm import tqdm
 from Misc.TFSpatialTransformer import *
+import pickle
 
 # Don't generate pyc codes
 sys.dont_write_bytecode = True
