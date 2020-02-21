@@ -199,18 +199,19 @@ def TrainOperationUnsupervised(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,Nu
 
 		# Tensorboard
 		Writer = tf.summary.FileWriter(LogsPath, graph=tf.get_default_graph())
-		   # Define PlaceHolder variables for Input and Predicted output
+		LossList = []
+		# Define PlaceHolder variables for Input and Predicted output
 		#
 		for Epochs in tqdm(range(StartEpoch, NumEpochs)):
 			NumIterationsPerEpoch = int(NumTrainSamples/MiniBatchSize/DivTrain)
-			Loss=[]
 			epoch_loss=0
+			BatchLosses=[]
 			for PerEpochCounter in tqdm(range(NumIterationsPerEpoch)):
 				patchBatch, IABatch,cornerBatch= GenerateBatchUnsupervised(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize,NumTrainImages)
 				FeedDict = {ImgPH: patchBatch, CornerPH: cornerBatch, I2PH: IABatch}
 				_, LossThisBatch, Summary = sess.run([Optimizer, loss, MergedSummaryOP1], feed_dict=FeedDict)
 				#print(shapeH4pt,shapeLabel).
-				Loss.append(LossThisBatch)
+				BatchLosses.append(LossThisBatch)
 				epoch_loss = epoch_loss + LossThisBatch
 				# Save checkpoint every some SaveCheckPoint's iterations
 				# if PerEpochCounter % SaveCheckPoint == 0:
@@ -223,9 +224,11 @@ def TrainOperationUnsupervised(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,Nu
 				Writer.add_summary(Summary, Epochs*NumIterationsPerEpoch + PerEpochCounter)
 			  
 
-			epoch_loss = epoch_loss/NumIterationsPerEpoch
+			LossList.append(sum(BatchLosses)/len(BatchLosses))
+			with open('TrainingLossData_m_unsupervised.pkl', 'wb') as f:
+				pickle.dump([LossList], f)
 			
-			print(np.mean(Loss))
+			# print(np.mean(Loss))
 			# Save model every epoch
 			SaveName = CheckPointPath + str(Epochs) + 'model.ckpt'
 			Saver.save(sess, save_path=SaveName)
@@ -308,12 +311,12 @@ def TrainOperationSupervised(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrai
 				#print(shapeH4pt,shapeLabel).
 				BatchLosses.append(LossThisBatch)
 				
-				# Save checkpoint every some SaveCheckPoint's iterations
-				if PerEpochCounter % SaveCheckPoint == 0:
-					# Save the Model learnt in this epoch
-					SaveName =  CheckPointPath + str(Epochs) + 'a' + str(PerEpochCounter) + 'model.ckpt'
-					Saver.save(sess,  save_path=SaveName)
-					print('\n' + SaveName + ' Model Saved...')
+				# # Save checkpoint every some SaveCheckPoint's iterations
+				# if PerEpochCounter % SaveCheckPoint == 0:
+				# 	# Save the Model learnt in this epoch
+				# 	SaveName =  CheckPointPath + str(Epochs) + 'a' + str(PerEpochCounter) + 'model.ckpt'
+				# 	Saver.save(sess,  save_path=SaveName)
+				# 	print('\n' + SaveName + ' Model Saved...')
 
 				# Tensorboard
 				Writer.add_summary(Summary, Epochs*NumIterationsPerEpoch + PerEpochCounter)
