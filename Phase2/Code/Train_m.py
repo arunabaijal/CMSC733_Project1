@@ -142,7 +142,8 @@ def GenerateBatchUnsupervised(BasePath, DirNamesTrain, TrainLabels, ImageSize, M
 		labelRegress.resize((8,1))
 		labelRegress=labelRegress[:,0]
 		stackedDataBatch.append(I1)
-				
+		#print(Ia.shape)	
+		Ia.resize((128,128,1))		
 		IABatch.append(Ia)
 		cornerBatch.append(labelRegress)
 
@@ -285,7 +286,7 @@ def TrainOperationSupervised(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrai
 	MergedSummaryOP = tf.summary.merge_all()
 
 	# Setup Saver
-	Saver = tf.train.Saver()
+	Saver = tf.train.Saver(max_to_keep=NumEpochs)
 	with tf.Session() as sess:       
 		if LatestFile is not None:
 			Saver.restore(sess, CheckPointPath + LatestFile + '.ckpt')
