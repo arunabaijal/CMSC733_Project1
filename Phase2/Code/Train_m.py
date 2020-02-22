@@ -142,7 +142,6 @@ def GenerateBatchUnsupervised(BasePath, DirNamesTrain, TrainLabels, ImageSize, M
 		labelRegress.resize((8,1))
 		labelRegress=labelRegress[:,0]
 		stackedDataBatch.append(I1)
-				
 		IABatch.append(Ia)
 		cornerBatch.append(labelRegress)
 
