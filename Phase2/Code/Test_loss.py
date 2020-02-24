@@ -48,12 +48,15 @@ def getImages(saveDest,ModelPath):
 	
 	H4pt = HomographyModel(ImgPH, ImageSize, 1)
 	Saver = tf.train.Saver()
+
+	test_model_loss = []
   
 	with tf.Session() as sess:
 		Saver.restore(sess, ModelPath)
 		print('Number of parameters in this model are %d ' % np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
 
-		for i in range(500):
+		for i in range(100):
+			print(i)
 			firstImage = '../Data/Val/'+str(i+1)+'.jpg'
 			firstI=cv2.imread(firstImage)
 			
@@ -75,6 +78,8 @@ def getImages(saveDest,ModelPath):
 			  [getLocY+cropSize/2,getLocX-cropSize/2],
 			  [getLocY+cropSize/2,getLocX+cropSize/2],
 			  [getLocY-cropSize/2,getLocX+cropSize/2]])
+
+			H4pts=pts2-pts1
 			
 			#get the perspective transform
 			hAB=cv2.getPerspectiveTransform(pts2,pts1)
@@ -97,6 +102,8 @@ def getImages(saveDest,ModelPath):
 			
 			FeedDict = {ImgPH: Img}
 			PredT = sess.run(H4pt,FeedDict)
+			# print(PredT)
+			# print(H4pts)
 			#label=label.reshape(1,8)
 			#print(PredT,label)
 			#loss=np.sqrt(np.mean((PredT-label)**2))
@@ -107,13 +114,16 @@ def getImages(saveDest,ModelPath):
 			#plt.imshow(image[:,:,1])
 	
 			newPointsDiff=PredT.reshape(4,2)
-			print(newPointsDiff)
+			# print 
+			test_model_loss.append(np.average(abs(newPointsDiff - H4pts)))
+			# print('\n')
+			# print(newPointsDiff)
 			pts2=np.float32([[getLocY-cropSize/2,getLocX-cropSize/2],
 				  [getLocY+cropSize/2,getLocX-cropSize/2],
 				  [getLocY+cropSize/2,getLocX+cropSize/2],
 				  [getLocY-cropSize/2,getLocX+cropSize/2]])
 			pts1=pts2+newPointsDiff
-			H4pts=pts2-pts1
+			# H4pts=pts2-pts1
 			#get the perspective transform
 			hAB=cv2.getPerspectiveTransform(pts2,pts1)
 			#get the inverse
@@ -131,7 +141,7 @@ def getImages(saveDest,ModelPath):
 			#plt.imshow(warped)
 			#plt.show()
 			cv2.imwrite('../Data/Phase2_out/result'+str(i)+'.png',firstI)
-
+	return sum(test_model_loss)/len(test_model_loss)
 	#stack images on top of each other.
 	#stackedData=np.dstack((patchA,patchB))
 	# #homogrpahy check
@@ -144,7 +154,7 @@ def getImages(saveDest,ModelPath):
 def main():
 	Parser = argparse.ArgumentParser()
 	
-	Parser.add_argument('--ModelPath', default='../Checkpoints_sup_training/49model.ckpt', help='Path to save Checkpoints, Default: ../Checkpoints/')
+	Parser.add_argument('--ModelPath', default='../Checkpoints_sup_only_last/49model.ckpt', help='Path to save Checkpoints, Default: ../Checkpoints/')
 	Parser.add_argument('--ModelType', default='Sup', help='Model type, Supervised or Unsupervised? Choose from Sup and Unsup, Default:Unsup')
 	
 	
@@ -153,7 +163,8 @@ def main():
 	ModelType = Args.ModelType
 	#first='/home/kartikmadhira/CMSC733/YourDirectoryID_p1/Phase2/Data/Val/'+str(rand)+'.jpg'
 	
-	getImages('new',ModelPath)
+	model_testing_loss = getImages('new',ModelPath)
+	print('final loss',model_testing_loss)
 
 	 
 if __name__ == '__main__':
