@@ -31,7 +31,7 @@ def HomographyModel(Img, ImageSize, MiniBatchSize):
                            padding="same",
                            activation=tf.nn.relu)
     
-    norm1 = tf.layers.batch_normalization(conv1)
+    norm1 = tf.layers.batch_normalization(conv1,training=True)
     
     
     conv2=tf.layers.conv2d(norm1,
@@ -40,7 +40,7 @@ def HomographyModel(Img, ImageSize, MiniBatchSize):
                            padding="same",
                            activation=tf.nn.relu)
     
-    norm2 = tf.layers.batch_normalization(conv2)
+    norm2 = tf.layers.batch_normalization(conv2,training=True)
     
     pool2=tf.layers.max_pooling2d(inputs=norm2,
                                   pool_size=(2,2),
@@ -54,7 +54,7 @@ def HomographyModel(Img, ImageSize, MiniBatchSize):
                            padding="same",
                            activation=tf.nn.relu)
     
-    norm3 = tf.layers.batch_normalization(conv3)
+    norm3 = tf.layers.batch_normalization(conv3,training=True)
     
     conv4=tf.layers.conv2d(norm3,
                            filters=64,
@@ -75,7 +75,7 @@ def HomographyModel(Img, ImageSize, MiniBatchSize):
                            padding="same",
                            activation=tf.nn.relu)
     
-    norm4 = tf.layers.batch_normalization(conv5)
+    norm4 = tf.layers.batch_normalization(conv5,training=True)
 
 #    #pool4=tf.layers.max_pooling2d(inputs=norm4,
 #                                  pool_size=(2,2),
@@ -87,7 +87,7 @@ def HomographyModel(Img, ImageSize, MiniBatchSize):
                            padding="same",
                            activation=tf.nn.relu)
     
-    norm5 = tf.layers.batch_normalization(conv6)
+    norm5 = tf.layers.batch_normalization(conv6,training=True)
 
     pool4=tf.layers.max_pooling2d(inputs=norm5,
                                   pool_size=(2,2),
@@ -101,7 +101,7 @@ def HomographyModel(Img, ImageSize, MiniBatchSize):
     
     
     #drop3=tf.layers.dropout(pool4,rate=0.5)
-    norm6 = tf.layers.batch_normalization(conv7)
+    norm6 = tf.layers.batch_normalization(conv7,training=True)
     
     conv8=tf.layers.conv2d(norm6,
                            filters=128,

@@ -416,6 +416,7 @@ def main():
 		rho=16
 		#resize shape
 		resize=(320,240)
+		print('running supervise')
 		#number of train sets to be made
 		numTrainData=128
 		#limit of the number of the images in the train set
