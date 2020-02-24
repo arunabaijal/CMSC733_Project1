@@ -26,67 +26,97 @@ def HomographyModel(Img, ImageSize, MiniBatchSize):
     prSoftMax - softmax output of the network
     """
 
-    #############################
-    # Fill your network here!
-    #############################
-
-    net = Img
-
-    net = tf.layers.conv2d(net,64,kernel_size = 3,activation = tf.nn.relu)
-    net = tf.layers.conv2d(net,64,kernel_size = 3,activation = tf.nn.relu)
-    net = tf.nn.max_pool(net,ksize = [1, 2, 2, 1],strides = [1, 2, 2, 1],padding = 'SAME')
-
-    net = tf.layers.conv2d(net,64,kernel_size = 3,activation = tf.nn.relu)
-    net = tf.layers.conv2d(net,64,kernel_size = 3,activation = tf.nn.relu)
-    net = tf.nn.max_pool(net,ksize = [1, 2, 2, 1],strides = [1, 2, 2, 1],padding = 'SAME')
-
-    net = tf.layers.conv2d(net,128,kernel_size = 3,activation = tf.nn.relu)
-    net = tf.layers.conv2d(net,128,kernel_size = 3,activation = tf.nn.relu)
-    net = tf.nn.max_pool(net,ksize = [1, 2, 2, 1],strides = [1, 2, 2, 1],padding = 'SAME')
-
-    net = tf.layers.conv2d(net,128,kernel_size = 3,activation = tf.nn.relu)
-    net = tf.layers.conv2d(net,128,kernel_size = 3,activation = tf.nn.relu)
-    # maxpool here?
-
-    x = tf.contrib.layers.flatten(net)
-
-    x = tf.layers.dense(inputs=x, name='fc_1',units=1024, activation=tf.nn.relu)
-    x = tf.layers.dense(inputs=x, name='fc_2',units=8, activation=None)
-
-    prLogits = x
-    # prSoftMax = tf.nn.softmax(x)
-    return prLogits
-
-    # input_shape=(128, 128, 2)
-    # input_img = Input(shape=input_shape)
-     
-    # x = Convolution2D(64, 3, 3, subsample=(1, 1), border_mode='same', name='conv1', activation='relu')(input_img)
-    # x = Convolution2D(64, 3, 3, subsample=(1, 1), border_mode='same', name='conv2', activation='relu')(x)
-    # x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), name='pool1')(x)
+    conv1=tf.layers.conv2d(Img,filters=64,
+                           kernel_size=(3,3),
+                           padding="same",
+                           activation=tf.nn.relu)
     
-    # x = Convolution2D(64, 3, 3, subsample=(1, 1), border_mode='same', name='conv3', activation='relu')(x)
-    # x = Convolution2D(64, 3, 3, subsample=(1, 1), border_mode='same', name='conv4', activation='relu')(x)
-    # x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), name='pool2')(x)
-   
-    # x = Convolution2D(128, 3, 3, subsample=(1, 1), border_mode='same', name='conv5', activation='relu')(x)
-    # x = Convolution2D(128, 3, 3, subsample=(1, 1), border_mode='same', name='conv6', activation='relu')(x)
-    # x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), name='pool3')(x)
-    
-    # x = Convolution2D(128, 3, 3, subsample=(1, 1), border_mode='same', name='conv7', activation='relu')(x)
-    # x = Convolution2D(128, 3, 3, subsample=(1, 1), border_mode='same', name='conv8', activation='relu')(x)
-    
-    # x = Flatten()(x)
-    # x = Dense(1024, name='FC1')(x)
-    # out = Dense(8, name='loss')(x)
-    
-    # model = Model(input=input_img, output=[out])
-    # plot(model, to_file='HomegraphyNet_Regression.png', show_shapes=True)
+    norm1 = tf.layers.batch_normalization(conv1)
     
     
-    # model.compile(optimizer=Adam(lr=1e-3), loss=euclidean_distance)
-    # return model
+    conv2=tf.layers.conv2d(norm1,
+                           filters=64,
+                           kernel_size=(3,3),
+                           padding="same",
+                           activation=tf.nn.relu)
+    
+    norm2 = tf.layers.batch_normalization(conv2)
+    
+    pool2=tf.layers.max_pooling2d(inputs=norm2,
+                                  pool_size=(2,2),
+                                  strides=2)
+    
+    #drop1=tf.layers.dropout(pool2,rate=0.5)
 
-   
+    conv3=tf.layers.conv2d(pool2,
+                           filters=64,
+                           kernel_size=(3,3),
+                           padding="same",
+                           activation=tf.nn.relu)
+    
+    norm3 = tf.layers.batch_normalization(conv3)
+    
+    conv4=tf.layers.conv2d(norm3,
+                           filters=64,
+                           kernel_size=(3,3),
+                           padding="same",
+                           activation=tf.nn.relu)
+    
+    
+    pool3=tf.layers.max_pooling2d(inputs=conv4,
+                                  pool_size=(2,2),
+                                  strides=2)
+    
+    #drop2=tf.layers.dropout(pool3,rate=0.5)
+    
+    conv5=tf.layers.conv2d(pool3,
+                           filters=128,
+                           kernel_size=(3,3),
+                           padding="same",
+                           activation=tf.nn.relu)
+    
+    norm4 = tf.layers.batch_normalization(conv5)
 
+#    #pool4=tf.layers.max_pooling2d(inputs=norm4,
+#                                  pool_size=(2,2),
+#                                  strides=2)
+    
+    conv6=tf.layers.conv2d(norm4,
+                           filters=128,
+                           kernel_size=(3,3),
+                           padding="same",
+                           activation=tf.nn.relu)
+    
+    norm5 = tf.layers.batch_normalization(conv6)
+
+    pool4=tf.layers.max_pooling2d(inputs=norm5,
+                                  pool_size=(2,2),
+                                  strides=2)
+    
+    conv7=tf.layers.conv2d(pool4,
+                           filters=128,
+                           kernel_size=(3,3),
+                           padding="same",
+                           activation=tf.nn.relu)
+    
+    
+    #drop3=tf.layers.dropout(pool4,rate=0.5)
+    norm6 = tf.layers.batch_normalization(conv7)
+    
+    conv8=tf.layers.conv2d(norm6,
+                           filters=128,
+                           kernel_size=(3,3),
+                           padding="same",
+                           activation=tf.nn.relu)
+    
+    #now flattening the layer to add a fully connected layer
+    flatLayer1=tf.reshape(conv8,[-1,conv8.shape[1:4].num_elements()])
+    
+    #adding a dense layer
+    dense1=tf.layers.dense(inputs=flatLayer1,units=1024,activation=tf.nn.relu)
+    
+    #add dropout if required!
+    H4Pt=tf.layers.dense(dense1,units=8,activation=None)
+    
     return H4Pt
 

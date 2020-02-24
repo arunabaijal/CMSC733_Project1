@@ -33,7 +33,7 @@ import numpy as np
 import time
 import argparse
 import shutil
-from StringIO import StringIO
+#from StringIO import StringIO
 import string
 from termcolor import colored, cprint
 import math as m
@@ -48,7 +48,7 @@ sys.dont_write_bytecode = True
 def SetupInputs(BasePath):
 	DIR = BasePath+'/Train_Gen'
 	nImages =  len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))])	
-	NumTrainSamples = nImages/2
+	NumTrainSamples = int(nImages/2)
 
 	# reading labels pickle file
 	with open(BasePath+'/labels_homography_train', 'rb') as f:
@@ -57,7 +57,7 @@ def SetupInputs(BasePath):
 	DirNamesTrain = []
 	temp_img = cv2.imread(BasePath+'/Train_Gen/1_raw_image.jpg')
 	ImageSize = (temp_img.shape[0],temp_img.shape[1],2*temp_img.shape[2])
-	for k in range(NumTrainSamples):
+	for k in range(int(NumTrainSamples)):
 		TrainLabels.append(dict_labels[str(k+1)])
 		DirNamesTrain.append('Train_Gen/'+str(k+1))
 	NumClasses = 8
@@ -161,8 +161,8 @@ def TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, 
 		###############################################
 		# Change loss funciton to eucledian!!!
 		# cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels = LabelPH, logits = prLogits)
-		loss = tf.reduce_mean(tf.nn.l2_loss(prLogits-LabelPH))
-
+		#loss = tf.nn.l2_loss(prLogits-LabelPH)
+		loss = tf.sqrt(tf.reduce_sum((tf.squared_difference(prLogits,LabelPH))))
 		# cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels = LabelPH, logits = prLogits)
 		# loss = tf.reduce_mean(cross_entropy)
 
@@ -236,8 +236,8 @@ def TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, 
 			LossList.append(sum(BatchLosses)/len(BatchLosses))
 			# TrainingAccuracyList.append(sum(BatchAccuracies)/len(BatchAccuracies))
 			
-			# with open('TrainingData.pkl', 'wb') as f:
-			# 	pickle.dump([TrainingAccuracyList,LossList], f)
+			with open('TrainingData.pkl', 'wb') as f:
+				pickle.dump([LossList], f)
 
 			#plt.plot(LossList)
 			#plt.plot(TrainingAccuracyList)

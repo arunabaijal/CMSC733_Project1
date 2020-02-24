@@ -67,7 +67,8 @@ def main():
 	# 	dict_labels = pickle.load(f)
 	dict_labels = {}
 	for k in range(1000):
-		img = cv2.imread('../Data/Train/'+str(k+1)+'.jpg')
+		img = cv2.imread('../Data/Val/'+str(k+1)+'.jpg')
+		# img = cv2.imread('../Data/Train/'+str(k+1)+'.jpg')
 		img = cv2.resize(img,(320,240))
 		cropped_img,intial_corners = random_crop(img)
 		perturbed_corners = gen_perturbed_corners(intial_corners)
@@ -80,12 +81,14 @@ def main():
 
 		transformed_image = get_transformed_image(warpped_img,intial_corners)
 
-		cv2.imwrite('../Data/Train_Gen/'+str(k+1)+'_raw_image.jpg',cropped_img)
-		cv2.imwrite('../Data/Train_Gen/'+str(k+1)+'_warpped_image.jpg',transformed_image)
+		# cv2.imwrite('../Data/Train_Gen/'+str(k+1)+'_raw_image.jpg',cropped_img)
+		# cv2.imwrite('../Data/Train_Gen/'+str(k+1)+'_warpped_image.jpg',transformed_image)
+		cv2.imwrite('../Data/Test_Gen/'+str(k+1)+'_raw_image.jpg',cropped_img)
+		cv2.imwrite('../Data/Test_Gen/'+str(k+1)+'_warpped_image.jpg',transformed_image)
 		dict_labels[str(k+1)] = (np.array(perturbed_corners)-np.array(intial_corners)).flatten()
-		with open('../Data/labels_homography_train', 'wb') as f:
+		# with open('../Data/labels_homography_train', 'wb') as f:
+		with open('../Data/labels_homography_test', 'wb') as f:
 			pickle.dump(dict_labels, f)
 
 if __name__ == '__main__':
 	main()
- 
