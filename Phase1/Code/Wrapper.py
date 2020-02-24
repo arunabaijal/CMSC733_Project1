@@ -5,7 +5,7 @@ CMSC733 Spring 2019: Classical and Deep Learning Approaches for
 Geometric Computer Vision
 Project1: MyAutoPano: Phase 1 Starter Code
 
-Author(s): 
+Author(s):
 Aruna Baijal (abaijal@umd.edu)
 M.Eng Student in Robotics,
 University of Maryland, College Park
@@ -19,7 +19,6 @@ University of Maryland, College Park
 
 import numpy as np
 import cv2
-from skimage.feature import peak_local_max
 import matplotlib.pyplot as plt
 import sys
 import random
@@ -84,7 +83,7 @@ def match_features(featureVec1,featureVec2):
 			sum_sq_dist.append(sum((vec1-vec2)**2))
 		min_val = min(sum_sq_dist)[0]
 		second_min_val = find_second_smallest(sum_sq_dist)
-		print('matching ratio for corner ',str(vec1_ind),'is = ',(min_val/second_min_val))
+		# print('matching ratio for corner ',str(vec1_ind),'is = ',(min_val/second_min_val))
 		if((min_val/second_min_val)<matching_ratio_threshold):
 			vec2_ind = sum_sq_dist.index(min_val)
 			matches.append([vec1_ind,vec2_ind])
@@ -116,14 +115,33 @@ def main():
 	Corner Detection
 	Save Corner detection output as corners.png
 	"""
-	basePath = ["../Data/Train/Set1/", "../Data/Train/Set2/", "../Data/Train/Set3/"]
+	basePath = ["../Data/Train/Set1/", "../Data/Train/Set2/", "../Data/Train/CustomSet1/", "../Data/Train/CustomSet2/", "../Data/Train/Set3/"]
 	paths = []
-	for num in range(3):
+	for num in range(4):
 		paths.append([basePath[num]+"1.jpg", basePath[num]+"2.jpg", "my_pano_set"+str(num+1)+".png", basePath[num]+"3.jpg"])
+	num = 4
+	paths.append([basePath[num]+"2.jpg", basePath[num]+"3.jpg", "my_pano_set"+str(num+1)+".png", basePath[num]+"4.jpg", basePath[num]+"8.jpg", basePath[num]+"7.jpg",  "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"6.jpg", "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"5.jpg", "my_pano_set"+str(num+1)+".png", "my_pano_set_rev"+str(num+1)+".png"])
+	print(paths)
+	# path = paths[4]
 	for num, path in enumerate(paths):
 		for j in range(0,len(path),2):
+			print('Running for images ' + path[j] + ' and ' + path[j+1] + '...')
 			img1_color = cv2.imread(path[j], 1)
+			if j == 0 or j == 4 and j!=10:
+				scale_percent = 70  # percent of original size
+				width = int(img1_color.shape[1] * scale_percent / 100)
+				height = int(img1_color.shape[0] * scale_percent / 100)
+				dim = (width, height)
+				# resize image
+				img1_color = cv2.resize(img1_color, dim, interpolation=cv2.INTER_AREA)
 			img2_color = cv2.imread(path[j+1], 1)
+			if j!= 10:
+				scale_percent = 70  # percent of original size
+				width = int(img2_color.shape[1] * scale_percent / 100)
+				height = int(img2_color.shape[0] * scale_percent / 100)
+				dim = (width, height)
+				# resize image
+				img2_color = cv2.resize(img2_color, dim, interpolation=cv2.INTER_AREA)
 			img1 = cv2.cvtColor(img1_color, cv2.COLOR_BGR2GRAY)
 			img2 = cv2.cvtColor(img2_color, cv2.COLOR_BGR2GRAY)
 			img1_color2 = img1_color.copy()
@@ -131,6 +149,30 @@ def main():
 			img2 = np.float32(img2)
 			newcords1 = applyANMS(img1, 200)
 			newcords2 = applyANMS(img2, 200)
+
+			fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
+			axes.imshow(img1_color2, cmap=plt.cm.gray)
+			axes.autoscale(False)
+			axes.plot(newcords1[:, 1], newcords1[:, 0], 'r.')
+			axes.axis('off')
+			axes.set_title('ANMS')
+
+			fig.tight_layout()
+
+			plt.savefig('anms_'+str(j)+'_set'+str(num)+'.png')
+			plt.close()
+
+			fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
+			axes.imshow(img2_color, cmap=plt.cm.gray)
+			axes.autoscale(False)
+			axes.plot(newcords2[:, 1], newcords2[:, 0], 'r.')
+			axes.axis('off')
+			axes.set_title('ANMS')
+
+			fig.tight_layout()
+
+			plt.savefig('anms_'+str(j+1)+'_set' + str(num) + '.png')
+			plt.close()
 
 			"""
 			Feature Descriptors
@@ -146,7 +188,6 @@ def main():
 			"""
 
 			matches = match_features(featureVec1,featureVec2)
-			print("matches",matches)
 			corner1_keypoints = []
 			for cornerInd in range(newcords1.shape[0]):
 				corner1_keypoints.append(cv2.KeyPoint(newcords1[cornerInd,1], newcords1[cornerInd,0], 5))
@@ -161,10 +202,18 @@ def main():
 
 			matchesImg = cv2.drawMatches(img1_color2,corner1_keypoints,img2_color,corner2_keypoints,dmatchvec,matchesImg)
 			cv2.imwrite("Matches_before_ransac_"+str(j) + str(j+1)+"_set_"+str(num+1)+".png", matchesImg)
-			if num == 2:
-				inliers_src, inliers_dst, matches_inliers = ransac(matches, newcords1, newcords2, 70, 0.25, 900)
+			if num == 4:
+				ran = ransac(matches, newcords1, newcords2, 70, 0.45, 2000)
+				if ran:
+					inliers_src, inliers_dst, matches_inliers = ran
+				else:
+					continue
 			else:
-				inliers_src, inliers_dst, matches_inliers = ransac(matches, newcords1, newcords2, 70, 0.4, 900)
+				ran = ransac(matches, newcords1, newcords2, 70, 0.45, 2000)
+				if ran:
+					inliers_src, inliers_dst, matches_inliers = ran
+				else:
+					continue
 			print_matches(np.array(inliers_src), np.array(inliers_dst), matches_inliers, img1_color2, img2_color, "Matches_after_ransac_"+str(j) + str(j+1)+"_set_"+str(num+1)+".png")
 			H = recalculate_homography(inliers_src, inliers_dst)
 			pts = [[0,0,img1_color2.shape[1],img1_color2.shape[1]],[0,img1_color2.shape[0],0,img1_color2.shape[0]],[1,1,1,1]]
@@ -178,8 +227,8 @@ def main():
 			totaly = ymax - translation_y
 			totalx = xmax - translation_x
 			identity_matrix = np.identity(3)
-			identity_matrix[0][2] = -translation_x
-			identity_matrix[1][2] = -translation_y
+			identity_matrix[0][2] = -1*translation_x
+			identity_matrix[1][2] = -1*translation_y
 			H = np.matmul(identity_matrix, H)
 			warped = cv2.warpPerspective(src=img1_color2, M=H, dsize=(int(totalx),int(totaly)))
 			for i in inliers_src:
@@ -204,17 +253,22 @@ def main():
 				if img2_color.shape[1] > warped.shape[1] + lpad:
 					rpad = img2_color.shape[1] - warped.shape[1] - lpad
 			else:
-				if xShift + img2_color.shape[1] > warped.shape[1] + lpad:
-					rpad = xShift + img2_color.shape[1] - warped.shape[1] - lpad
+				if xShift + img2_color.shape[1] > warped.shape[1]:
+					rpad = xShift + img2_color.shape[1] - warped.shape[1]
 			if yShift < 0:
 				upad = -yShift
 				if img2_color.shape[0] > warped.shape[0] + upad:
 					dpad = img2_color.shape[0] - warped.shape[0] - upad
 			else:
-				if yShift + img2_color.shape[0] > warped.shape[0] + upad:
-					dpad = yShift + img2_color.shape[0] - warped.shape[0] - upad
+				if yShift + img2_color.shape[0] > warped.shape[0]:
+					dpad = yShift + img2_color.shape[0] - warped.shape[0]
+			print('warped shape before padding',warped.shape)
+			print('img2 shape ',img2_color.shape)
+			print('Padding required', upad, dpad, lpad, rpad)
 			warped = np.pad(warped, ((upad, dpad), (lpad, rpad), (0, 0)), mode='constant')
-			print(warped.shape)
+			# cv2.imshow('warped', warped)
+			# cv2.waitKey(0)
+			print('warped shape after padding', warped.shape)
 			xShift = max(0, xShift)
 			yShift = max(0, yShift)
 			for x in range(xShift, xShift + img2_color.shape[1]):
@@ -223,7 +277,11 @@ def main():
 					img2Y = y - yShift
 					val = img2_color[img2Y,img2X,:]
 					warped[y,x,:] = val
-			cv2.imwrite("my_pano_set"+str(num+1)+".png", warped)
+			if j >= 4:
+				cv2.imwrite("my_pano_set_rev" + str(num + 1) + ".png", warped)
+			else:
+				cv2.imwrite("my_pano_set" + str(num + 1) + ".png", warped)
+			cv2.imwrite("my_pano_set" + str(num + 1) + "image" + str(j) + ".png", warped)
 
 	"""
 	Refine: RANSAC, Estimate Homography
@@ -309,12 +367,13 @@ def ransac(matches, newcords1, newcords2, dist_thresh, n_matches_thresh, counter
 				n_inliers += 1
 				inliers_src.append([newcords1[match[0]][1],newcords1[match[0]][0]])
 				inliers_dst.append([newcords2[match[1]][1],newcords2[match[1]][0]])
-		# print(float(len(inliers_src))/len(matches))
+		# print('RANSAC matches detected ' + str(float(len(inliers_src))/len(matches)))
 		if(float(len(inliers_src))/len(matches)>n_matches_thresh):
 			break
 		counter+=1
 	if(counter==counter_thresh):
 		print('Not enough matches between images!')
+		return False
 	else:
 		return inliers_src, inliers_dst, matches_inliers
 
