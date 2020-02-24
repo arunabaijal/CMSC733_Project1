@@ -115,7 +115,7 @@ def main():
 	Corner Detection
 	Save Corner detection output as corners.png
 	"""
-	basePath = ["../Data/Train/Set1/", "../Data/Train/Set2/", "../Data/Train/CustomSet1/", "../Data/Train/CustomSet2/", "../Data/Test/TestSet3/", "../Data/Test/TestSet4/", "../Data/Train/Set3/", "../Data/Test/TestSet2/"]
+	basePath = ["../Data/Train/Set1/", "../Data/Train/Set2/", "../Data/Train/CustomSet1/", "../Data/Train/CustomSet2/", "../Data/Test/TestSet3/", "../Data/Test/TestSet4/", "../Data/Train/Set3/", "../Data/Test/TestSet2/", "../Data/Test/TestSet1/"]
 	paths = []
 	for num in range(5):
 		paths.append([basePath[num]+"1.jpg", basePath[num]+"2.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"3.jpg"])
@@ -129,8 +129,15 @@ def main():
 				  "my_pano_set_rev_" + str(num + 1) + ".png", basePath[num] + "5.jpg",
 				  "my_pano_set_" + str(num + 1) + ".png", "my_pano_set_rev_" + str(num + 1) + ".png"])
 	num = 7
-	paths.append([basePath[num]+"1.jpg", basePath[num]+"2.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"3.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"4.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"5.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"6.jpg", basePath[num]+"9.jpg", basePath[num]+"8.jpg", "my_pano_set_rev_"+str(num+1)+".png", basePath[num]+"7.jpg", "my_pano_set_rev_"+str(num+1)+".png", "my_pano_set_"+str(num+1)+".png"])
-	# paths.append([basePath[num]+"2.jpg", basePath[num]+"3.jpg", "my_pano_set"+str(num+1)+".png", basePath[num]+"4.jpg", basePath[num]+"8.jpg", basePath[num]+"7.jpg",  "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"6.jpg", "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"5.jpg", "my_pano_set"+str(num+1)+".png", "my_pano_set_rev"+str(num+1)+".png"])
+	paths.append([basePath[num] + "1.jpg", basePath[num] + "2.jpg", "my_pano_set_" + str(num + 1) + ".png",
+				  basePath[num] + "3.jpg", "my_pano_set_" + str(num + 1) + ".png", basePath[num] + "4.jpg",
+				  "my_pano_set_" + str(num + 1) + ".png", basePath[num] + "5.jpg",
+				  "my_pano_set_" + str(num + 1) + ".png", basePath[num] + "6.jpg", basePath[num] + "9.jpg",
+				  basePath[num] + "8.jpg", "my_pano_set_rev_" + str(num + 1) + ".png", basePath[num] + "7.jpg",
+				  "my_pano_set_rev_" + str(num + 1) + ".png", "my_pano_set_" + str(num + 1) + ".png"])
+	num = 8
+	paths.append([basePath[num] + "1.jpg", basePath[num] + "2.jpg", "my_pano_set_" + str(num + 1) + ".png",
+				  basePath[num] + "4.jpg"])
 	print(paths)
 	# path = paths[4]
 	for num, path in enumerate(paths):
@@ -214,6 +221,12 @@ def main():
 			cv2.imwrite("Matches_before_ransac_"+str(j) + str(j+1)+"_set_"+str(num+1)+".png", matchesImg)
 			if (num == 7 and j >= 10):
 				ran = ransac(matches, newcords1, newcords2, 90, 0.17, 2000)
+				if ran:
+					inliers_src, inliers_dst, matches_inliers = ran
+				else:
+					continue
+			elif num == 8:
+				ran = ransac(matches, newcords1, newcords2, 70, 0.25, 2000)
 				if ran:
 					inliers_src, inliers_dst, matches_inliers = ran
 				else:
@@ -379,7 +392,7 @@ def ransac(matches, newcords1, newcords2, dist_thresh, n_matches_thresh, counter
 				n_inliers += 1
 				inliers_src.append([newcords1[match[0]][1],newcords1[match[0]][0]])
 				inliers_dst.append([newcords2[match[1]][1],newcords2[match[1]][0]])
-		# print('RANSAC matches detected ' + str(float(len(inliers_src))/len(matches)))
+		print('RANSAC matches detected ' + str(float(len(inliers_src))/len(matches)))
 		if(float(len(inliers_src))/len(matches)>n_matches_thresh):
 			break
 		counter+=1
