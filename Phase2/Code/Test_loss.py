@@ -36,7 +36,7 @@ def saveData(savePath,data,i):
 	np.savez(savePath+'labels/'+str(i)+'.npz',data[1])
 
 
-def getImages(saveDest,ModelPath):
+def getImages(saveDest):
 	#load image
 	cropSize=128
 	resize=(320,240)
@@ -52,13 +52,12 @@ def getImages(saveDest,ModelPath):
 	test_model_loss = []
   
 	with tf.Session() as sess:
-		for k in [46]:
+		for k in range(10):
 			ModelPath = '../Checkpoints_sup_training/'+str(k)+'model.ckpt'
 			Saver.restore(sess, ModelPath)
 			print('Number of parameters in this model are %d ' % np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
 
 			for i in range(20):
-				print(i)
 				firstImage = '../Data/Val/'+str(i+1)+'.jpg'
 				firstI=cv2.imread(firstImage)
 				
