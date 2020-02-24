@@ -129,7 +129,7 @@ def main():
 				  "my_pano_set_rev_" + str(num + 1) + ".png", basePath[num] + "5.jpg",
 				  "my_pano_set_" + str(num + 1) + ".png", "my_pano_set_rev_" + str(num + 1) + ".png"])
 	num = 7
-	paths.append([basePath[num]+"1.jpg", basePath[num]+"2.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"3.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"4.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"5.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"6.jpg", basePath[num]+"9.jpg", basePath[num]+"8.jpg", "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"7.jpg", "my_pano_set_rev"+str(num+1)+".png", "my_pano_set_"+str(num+1)+".png"])
+	paths.append([basePath[num]+"1.jpg", basePath[num]+"2.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"3.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"4.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"5.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"6.jpg", basePath[num]+"9.jpg", basePath[num]+"8.jpg", "my_pano_set_rev_"+str(num+1)+".png", basePath[num]+"7.jpg", "my_pano_set_rev_"+str(num+1)+".png", "my_pano_set_"+str(num+1)+".png"])
 	# paths.append([basePath[num]+"2.jpg", basePath[num]+"3.jpg", "my_pano_set"+str(num+1)+".png", basePath[num]+"4.jpg", basePath[num]+"8.jpg", basePath[num]+"7.jpg",  "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"6.jpg", "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"5.jpg", "my_pano_set"+str(num+1)+".png", "my_pano_set_rev"+str(num+1)+".png"])
 	print(paths)
 	# path = paths[4]
@@ -288,7 +288,7 @@ def main():
 					val = img2_color[img2Y,img2X,:]
 					warped[y,x,:] = val
 			if (num == 7 and j >= 8) or (num == 6 and j >= 4):
-				cv2.imwrite("my_pano_set_rev" + str(num + 1) + ".png", warped)
+				cv2.imwrite("my_pano_set_rev_" + str(num + 1) + ".png", warped)
 			else:
 				cv2.imwrite("my_pano_set_" + str(num + 1) + ".png", warped)
 			cv2.imwrite("my_pano_set_" + str(num + 1) + "image" + str(j) + ".png", warped)
