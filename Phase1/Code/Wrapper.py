@@ -115,19 +115,29 @@ def main():
 	Corner Detection
 	Save Corner detection output as corners.png
 	"""
-	basePath = ["../Data/Train/Set1/", "../Data/Train/Set2/", "../Data/Train/CustomSet1/", "../Data/Train/CustomSet2/", "../Data/Train/Set3/"]
+	basePath = ["../Data/Train/Set1/", "../Data/Train/Set2/", "../Data/Train/CustomSet1/", "../Data/Train/CustomSet2/", "../Data/Test/TestSet3/", "../Data/Test/TestSet4/", "../Data/Train/Set3/", "../Data/Test/TestSet2/"]
 	paths = []
-	for num in range(4):
-		paths.append([basePath[num]+"1.jpg", basePath[num]+"2.jpg", "my_pano_set"+str(num+1)+".png", basePath[num]+"3.jpg"])
-	num = 4
-	paths.append([basePath[num]+"2.jpg", basePath[num]+"3.jpg", "my_pano_set"+str(num+1)+".png", basePath[num]+"4.jpg", basePath[num]+"8.jpg", basePath[num]+"7.jpg",  "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"6.jpg", "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"5.jpg", "my_pano_set"+str(num+1)+".png", "my_pano_set_rev"+str(num+1)+".png"])
+	for num in range(5):
+		paths.append([basePath[num]+"1.jpg", basePath[num]+"2.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"3.jpg"])
+	num = 5
+	paths.append([basePath[num] + "1.jpg", basePath[num] + "2.jpg", "my_pano_set_" + str(num + 1) + ".png",
+				  basePath[num] + "3.jpg", "my_pano_set_" + str(num + 1) + ".png", basePath[num] + "4.jpg", "my_pano_set_" + str(num + 1) + ".png", basePath[num] + "5.jpg"])
+	num = 6
+	paths.append([basePath[num] + "2.jpg", basePath[num] + "3.jpg", "my_pano_set_" + str(num + 1) + ".png",
+				  basePath[num] + "4.jpg", basePath[num] + "8.jpg", basePath[num] + "7.jpg",
+				  "my_pano_set_rev_" + str(num + 1) + ".png", basePath[num] + "6.jpg",
+				  "my_pano_set_rev_" + str(num + 1) + ".png", basePath[num] + "5.jpg",
+				  "my_pano_set_" + str(num + 1) + ".png", "my_pano_set_rev_" + str(num + 1) + ".png"])
+	num = 7
+	paths.append([basePath[num]+"1.jpg", basePath[num]+"2.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"3.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"4.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"5.jpg", "my_pano_set_"+str(num+1)+".png", basePath[num]+"6.jpg", basePath[num]+"9.jpg", basePath[num]+"8.jpg", "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"7.jpg", "my_pano_set_rev"+str(num+1)+".png", "my_pano_set_"+str(num+1)+".png"])
+	# paths.append([basePath[num]+"2.jpg", basePath[num]+"3.jpg", "my_pano_set"+str(num+1)+".png", basePath[num]+"4.jpg", basePath[num]+"8.jpg", basePath[num]+"7.jpg",  "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"6.jpg", "my_pano_set_rev"+str(num+1)+".png", basePath[num]+"5.jpg", "my_pano_set"+str(num+1)+".png", "my_pano_set_rev"+str(num+1)+".png"])
 	print(paths)
 	# path = paths[4]
 	for num, path in enumerate(paths):
 		for j in range(0,len(path),2):
 			print('Running for images ' + path[j] + ' and ' + path[j+1] + '...')
 			img1_color = cv2.imread(path[j], 1)
-			if j == 0 or j == 4 and j!=10:
+			if j == 0 or (num == 6 and j == 4) or (num == 7 and j == 10):
 				scale_percent = 70  # percent of original size
 				width = int(img1_color.shape[1] * scale_percent / 100)
 				height = int(img1_color.shape[0] * scale_percent / 100)
@@ -135,7 +145,7 @@ def main():
 				# resize image
 				img1_color = cv2.resize(img1_color, dim, interpolation=cv2.INTER_AREA)
 			img2_color = cv2.imread(path[j+1], 1)
-			if j!= 10:
+			if not (num == 6 and j== 10) or (num == 7 and j== 14):
 				scale_percent = 70  # percent of original size
 				width = int(img2_color.shape[1] * scale_percent / 100)
 				height = int(img2_color.shape[0] * scale_percent / 100)
@@ -159,7 +169,7 @@ def main():
 
 			fig.tight_layout()
 
-			plt.savefig('anms_'+str(j)+'_set'+str(num)+'.png')
+			plt.savefig('anms_'+str(j)+'_set_'+str(num)+'.png')
 			plt.close()
 
 			fig, axes = plt.subplots(1, 1, figsize=(8, 3), sharex=True, sharey=True)
@@ -171,7 +181,7 @@ def main():
 
 			fig.tight_layout()
 
-			plt.savefig('anms_'+str(j+1)+'_set' + str(num) + '.png')
+			plt.savefig('anms_'+str(j+1)+'_set_' + str(num) + '.png')
 			plt.close()
 
 			"""
@@ -202,8 +212,8 @@ def main():
 
 			matchesImg = cv2.drawMatches(img1_color2,corner1_keypoints,img2_color,corner2_keypoints,dmatchvec,matchesImg)
 			cv2.imwrite("Matches_before_ransac_"+str(j) + str(j+1)+"_set_"+str(num+1)+".png", matchesImg)
-			if num == 4:
-				ran = ransac(matches, newcords1, newcords2, 70, 0.45, 2000)
+			if (num == 7 and j >= 10):
+				ran = ransac(matches, newcords1, newcords2, 90, 0.17, 2000)
 				if ran:
 					inliers_src, inliers_dst, matches_inliers = ran
 				else:
@@ -262,13 +272,13 @@ def main():
 			else:
 				if yShift + img2_color.shape[0] > warped.shape[0]:
 					dpad = yShift + img2_color.shape[0] - warped.shape[0]
-			print('warped shape before padding',warped.shape)
-			print('img2 shape ',img2_color.shape)
-			print('Padding required', upad, dpad, lpad, rpad)
+			# print('warped shape before padding',warped.shape)
+			# print('img2 shape ',img2_color.shape)
+			# print('Padding required', upad, dpad, lpad, rpad)
 			warped = np.pad(warped, ((upad, dpad), (lpad, rpad), (0, 0)), mode='constant')
 			# cv2.imshow('warped', warped)
 			# cv2.waitKey(0)
-			print('warped shape after padding', warped.shape)
+			# print('warped shape after padding', warped.shape)
 			xShift = max(0, xShift)
 			yShift = max(0, yShift)
 			for x in range(xShift, xShift + img2_color.shape[1]):
@@ -277,11 +287,11 @@ def main():
 					img2Y = y - yShift
 					val = img2_color[img2Y,img2X,:]
 					warped[y,x,:] = val
-			if j >= 4:
+			if (num == 7 and j >= 8) or (num == 6 and j >= 4):
 				cv2.imwrite("my_pano_set_rev" + str(num + 1) + ".png", warped)
 			else:
-				cv2.imwrite("my_pano_set" + str(num + 1) + ".png", warped)
-			cv2.imwrite("my_pano_set" + str(num + 1) + "image" + str(j) + ".png", warped)
+				cv2.imwrite("my_pano_set_" + str(num + 1) + ".png", warped)
+			cv2.imwrite("my_pano_set_" + str(num + 1) + "image" + str(j) + ".png", warped)
 
 	"""
 	Refine: RANSAC, Estimate Homography
@@ -307,7 +317,7 @@ def recalculate_homography(inliers_src, inliers_dst):
 	return  H
 
 def applyANMS(img1, nbest):
-	coordinates = cv2.goodFeaturesToTrack(img1, nbest, 0.05, 20)
+	coordinates = cv2.goodFeaturesToTrack(img1, 3*nbest, 0.05, 20)
 	Nstrong = len(coordinates)
 	# print(Nstrong)
 	rcord = []
@@ -338,6 +348,8 @@ def ransac(matches, newcords1, newcords2, dist_thresh, n_matches_thresh, counter
 	dist_thresh = dist_thresh
 	n_matches_thresh = n_matches_thresh
 	nMatches = len(matches)
+	if nMatches < 8:
+		return False
 	counter = 0
 	while (counter<counter_thresh):
 		feature_pairs = random.sample(matches, k=4)
