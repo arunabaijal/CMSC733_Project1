@@ -56,7 +56,9 @@ def getImages(saveDest):
 			ModelPath = '../Checkpoints_sup_training/'+str(k)+'model.ckpt'
 			Saver.restore(sess, ModelPath)
 			print('Number of parameters in this model are %d ' % np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
-
+			images_save_dir = '../Data/Phase2_out/'+str(k)
+			if not os.path.exists(images_save_dir):
+	    		os.makedirs(images_save_dir)
 			for i in range(20):
 				firstImage = '../Data/Val/'+str(i+1)+'.jpg'
 				firstI=cv2.imread(firstImage)
@@ -141,7 +143,7 @@ def getImages(saveDest):
 				#plt.figure()
 				#plt.imshow(warped)
 				#plt.show()
-				cv2.imwrite('../Data/Phase2_out/result'+str(i)+'.png',firstI)
+				cv2.imwrite(images_save_dir+'/'+str(i)+'.png',firstI)
 			epoch_loss =  sum(test_model_loss)/len(test_model_loss)
 			print('epoch_loss',epoch_loss)
 	#stack images on top of each other.
