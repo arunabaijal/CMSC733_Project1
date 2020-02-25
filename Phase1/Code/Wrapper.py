@@ -137,7 +137,7 @@ def main():
 				  "my_pano_set_rev_" + str(num + 1) + ".png", "my_pano_set_" + str(num + 1) + ".png"])
 	num = 8
 	paths.append([basePath[num] + "1.jpg", basePath[num] + "2.jpg", "my_pano_set_" + str(num + 1) + ".png",
-				  basePath[num] + "4.jpg"])
+				  basePath[num] + "3.jpg", "my_pano_set_" + str(num + 1) + ".png", basePath[num] + "4.jpg"])
 	print(paths)
 	# path = paths[4]
 	for num, path in enumerate(paths):
@@ -226,7 +226,7 @@ def main():
 				else:
 					continue
 			elif num == 8:
-				ran = ransac(matches, newcords1, newcords2, 70, 0.25, 2000)
+				ran = ransac(matches, newcords1, newcords2, 90, 0.25, 2000)
 				if ran:
 					inliers_src, inliers_dst, matches_inliers = ran
 				else:
