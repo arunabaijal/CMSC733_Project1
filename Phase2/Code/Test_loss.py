@@ -14,7 +14,8 @@ import os
 import time 
 import tensorflow as tf
 from Network.Network import HomographyModel
-import argparse 
+import argparse
+from utils.gatherDataSupervised import generateImagesSupervised
 
 
 def loadTrainList(filePath,numTrainData,numImagesLimit):
@@ -36,7 +37,7 @@ def saveData(savePath,data,i):
 	np.savez(savePath+'labels/'+str(i)+'.npz',data[1])
 
 
-def getImages(saveDest):
+def getImages(DirNamesTrain, SaveCheckPoint, ImageSize, NumTrainSamples, TrainLabels, NumClasses,saveDest):
 	#load image
 	cropSize=128
 	resize=(320,240)
@@ -44,7 +45,7 @@ def getImages(saveDest):
 
 	ImageSize = [128, 128, 2]
 	ImgPH=tf.placeholder(tf.float32, shape=(1, 128, 128, 2))
-	
+	LabelPH = tf.placeholder(tf.float32, shape=(1, 8))
 	
 	H4pt = HomographyModel(ImgPH, ImageSize, 1)
 	Saver = tf.train.Saver()
@@ -60,51 +61,55 @@ def getImages(saveDest):
 			if not os.path.exists(images_save_dir):
 				os.makedirs(images_save_dir)
 			for i in range(20):
-				firstImage = '../Data/Val/'+str(i+1)+'.jpg'
-				firstI=cv2.imread(firstImage)
+				# firstImage = '../Data/Val/'+str(i+1)+'.jpg'
+				# firstI=cv2.imread(firstImage)
 				
-				image1=cv2.imread(firstImage,cv2.IMREAD_GRAYSCALE)
-				image=cv2.resize(image1,resize)
-				#get a random x and y location that does not have the borders
-				#x is Y and y is X!
-				getLocX=random.randint(105,160)
-				getLocY=random.randint(105,225)
-				#crop the image
-				patchA=image[getLocX-int(cropSize/2):getLocX+int(cropSize/2),getLocY-int(cropSize/2):getLocY+int(cropSize/2)]
+				# image1=cv2.imread(firstImage,cv2.IMREAD_GRAYSCALE)
+				# image=cv2.resize(image1,resize)
+				# #get a random x and y location that does not have the borders
+				# #x is Y and y is X!
+				# getLocX=random.randint(105,160)
+				# getLocY=random.randint(105,225)
+				# #crop the image
+				# patchA=image[getLocX-int(cropSize/2):getLocX+int(cropSize/2),getLocY-int(cropSize/2):getLocY+int(cropSize/2)]
 				
-				#perturb image randomly and apply homography
-				pts1=np.float32([[getLocY-cropSize/2+random.randint(-rho,rho),getLocX-cropSize/2+random.randint(-rho,rho)],
-				  [getLocY+cropSize/2+random.randint(-rho,rho),getLocX-cropSize/2+random.randint(-rho,rho)],
-				  [getLocY+cropSize/2+random.randint(-rho,rho),getLocX+cropSize/2+random.randint(-rho,rho)],
-				  [getLocY-cropSize/2+random.randint(-rho,rho),getLocX+cropSize/2+random.randint(-rho,rho)]])
-				pts2=np.float32([[getLocY-cropSize/2,getLocX-cropSize/2],
-				  [getLocY+cropSize/2,getLocX-cropSize/2],
-				  [getLocY+cropSize/2,getLocX+cropSize/2],
-				  [getLocY-cropSize/2,getLocX+cropSize/2]])
+				# #perturb image randomly and apply homography
+				# pts1=np.float32([[getLocY-cropSize/2+random.randint(-rho,rho),getLocX-cropSize/2+random.randint(-rho,rho)],
+				#   [getLocY+cropSize/2+random.randint(-rho,rho),getLocX-cropSize/2+random.randint(-rho,rho)],
+				#   [getLocY+cropSize/2+random.randint(-rho,rho),getLocX+cropSize/2+random.randint(-rho,rho)],
+				#   [getLocY-cropSize/2+random.randint(-rho,rho),getLocX+cropSize/2+random.randint(-rho,rho)]])
+				# pts2=np.float32([[getLocY-cropSize/2,getLocX-cropSize/2],
+				#   [getLocY+cropSize/2,getLocX-cropSize/2],
+				#   [getLocY+cropSize/2,getLocX+cropSize/2],
+				#   [getLocY-cropSize/2,getLocX+cropSize/2]])
 
-				H4pts=pts2-pts1
+				# H4pts=pts2-pts1
 				
-				#get the perspective transform
-				hAB=cv2.getPerspectiveTransform(pts2,pts1)
-				#get the inverse
-				hBA=np.linalg.inv(hAB)
-				#get the warped image from the inverse homography generated in the dataset
-				warped=np.asarray(cv2.warpPerspective(image,hAB,resize)).astype(np.uint8)
-				#get the last patchB at the same location but on the warped image.
-				patchB=warped[getLocX-int(cropSize/2):getLocX+int(cropSize/2),getLocY-int(cropSize/2):getLocY+int(cropSize/2)]
+				# #get the perspective transform
+				# hAB=cv2.getPerspectiveTransform(pts2,pts1)
+				# #get the inverse
+				# hBA=np.linalg.inv(hAB)
+				# #get the warped image from the inverse homography generated in the dataset
+				# warped=np.asarray(cv2.warpPerspective(image,hAB,resize)).astype(np.uint8)
+				# #get the last patchB at the same location but on the warped image.
+				# patchB=warped[getLocX-int(cropSize/2):getLocX+int(cropSize/2),getLocY-int(cropSize/2):getLocY+int(cropSize/2)]
 				
 				
-				cv2.line(firstI,   (pts1[0][0],pts1[0][1]),(pts1[1][0],pts1[1][1]), (255,0,0), 3)
-				cv2.line(firstI,  (pts1[1][0],pts1[1][1]),(pts1[2][0],pts1[2][1]), (255,0,0), 3)
-				cv2.line(firstI,  (pts1[2][0],pts1[2][1]),(pts1[3][0],pts1[3][1]), (255,0,0), 3)
-				cv2.line(firstI,  (pts1[3][0],pts1[3][1]),(pts1[0][0],pts1[0][1]), (255,0,0), 3)
+				# cv2.line(firstI,   (pts1[0][0],pts1[0][1]),(pts1[1][0],pts1[1][1]), (255,0,0), 3)
+				# cv2.line(firstI,  (pts1[1][0],pts1[1][1]),(pts1[2][0],pts1[2][1]), (255,0,0), 3)
+				# cv2.line(firstI,  (pts1[2][0],pts1[2][1]),(pts1[3][0],pts1[3][1]), (255,0,0), 3)
+				# cv2.line(firstI,  (pts1[3][0],pts1[3][1]),(pts1[0][0],pts1[0][1]), (255,0,0), 3)
 				
-				Img=np.dstack((patchA,patchB))
-				image=Img
-				Img=np.array(Img).reshape(1,128,128,2)
+				I1Batch, LabelBatch = GenerateBatchSupervised(BasePath, DirNamesTrain, TrainLabels, ImageSize, 1,NumTrainImages)
+				FeedDict = {ImgPH: I1Batch, LabelPH: LabelBatch}
+				LossThisBatch = sess.run([ loss], feed_dict=FeedDict)
+		
+				# Img=np.dstack((patchA,patchB))
+				# image=Img
+				# Img=np.array(Img).reshape(1,128,128,2)
 				
-				FeedDict = {ImgPH: Img}
-				PredT = sess.run(H4pt,FeedDict)
+				# FeedDict = {ImgPH: Img}
+				# PredT = sess.run(H4pt,FeedDict)
 				# print(PredT)
 				# print(H4pts)
 				#label=label.reshape(1,8)
@@ -121,29 +126,29 @@ def getImages(saveDest):
 				test_model_loss.append(np.average(abs(newPointsDiff - H4pts)))
 				# print('\n')
 				# print(newPointsDiff)
-				pts2=np.float32([[getLocY-cropSize/2,getLocX-cropSize/2],
-					  [getLocY+cropSize/2,getLocX-cropSize/2],
-					  [getLocY+cropSize/2,getLocX+cropSize/2],
-					  [getLocY-cropSize/2,getLocX+cropSize/2]])
-				pts1=pts2+newPointsDiff
-				# H4pts=pts2-pts1
-				#get the perspective transform
-				hAB=cv2.getPerspectiveTransform(pts2,pts1)
-				#get the inverse
-				hBA=np.linalg.inv(hAB)
-				#get the warped image from the inverse homography generated in the dataset
-				#warped=np.asarray(cv2.warpPerspective(firstImageCol,hAB,)).astype(np.uint8)
-				#get the last patchB at the same location but on the warped image.
-				#patchB=warped[getLocX-int(cropSize/2):getLocX+int(cropSize/2),getLocY-int(cropSize/2):getLocY+int(cropSize/2)]
+				# pts2=np.float32([[getLocY-cropSize/2,getLocX-cropSize/2],
+				# 	  [getLocY+cropSize/2,getLocX-cropSize/2],
+				# 	  [getLocY+cropSize/2,getLocX+cropSize/2],
+				# 	  [getLocY-cropSize/2,getLocX+cropSize/2]])
+				# pts1=pts2+newPointsDiff
+				# # H4pts=pts2-pts1
+				# #get the perspective transform
+				# hAB=cv2.getPerspectiveTransform(pts2,pts1)
+				# #get the inverse
+				# hBA=np.linalg.inv(hAB)
+				# #get the warped image from the inverse homography generated in the dataset
+				# #warped=np.asarray(cv2.warpPerspective(firstImageCol,hAB,)).astype(np.uint8)
+				# #get the last patchB at the same location but on the warped image.
+				# #patchB=warped[getLocX-int(cropSize/2):getLocX+int(cropSize/2),getLocY-int(cropSize/2):getLocY+int(cropSize/2)]
 
-				cv2.line(firstI,   (pts1[0][0],pts1[0][1]),(pts1[1][0],pts1[1][1]), (0,0,255), 3)
-				cv2.line(firstI,  (pts1[1][0],pts1[1][1]),(pts1[2][0],pts1[2][1]),(0,0,255), 3)
-				cv2.line(firstI,  (pts1[2][0],pts1[2][1]),(pts1[3][0],pts1[3][1]),(0,0,255), 3)
-				cv2.line(firstI,  (pts1[3][0],pts1[3][1]),(pts1[0][0],pts1[0][1]), (0,0,255), 3)
-				#plt.figure()
-				#plt.imshow(warped)
-				#plt.show()
-				cv2.imwrite(images_save_dir+'/'+str(i)+'.png',firstI)
+				# cv2.line(firstI,   (pts1[0][0],pts1[0][1]),(pts1[1][0],pts1[1][1]), (0,0,255), 3)
+				# cv2.line(firstI,  (pts1[1][0],pts1[1][1]),(pts1[2][0],pts1[2][1]),(0,0,255), 3)
+				# cv2.line(firstI,  (pts1[2][0],pts1[2][1]),(pts1[3][0],pts1[3][1]),(0,0,255), 3)
+				# cv2.line(firstI,  (pts1[3][0],pts1[3][1]),(pts1[0][0],pts1[0][1]), (0,0,255), 3)
+				# #plt.figure()
+				# #plt.imshow(warped)
+				# #plt.show()
+				# cv2.imwrite(images_save_dir+'/'+str(i)+'.png',firstI)
 			epoch_loss =  sum(test_model_loss)/len(test_model_loss)
 			print('epoch_loss',epoch_loss)
 	#stack images on top of each other.
@@ -160,14 +165,38 @@ def main():
 	
 	# Parser.add_argument('--ModelPath', default='../Checkpoints_sup_only_last/49model.ckpt', help='Path to save Checkpoints, Default: ../Checkpoints/')
 	Parser.add_argument('--ModelType', default='Sup', help='Model type, Supervised or Unsupervised? Choose from Sup and Unsup, Default:Unsup')
-	
-	
+	Parser.add_argument('--BasePath', default='../Data', help='Base path of images, Default:/media/nitin/Research/Homing/SpectralCompression/COCO')
+	Parser.add_argument('--CheckPointPath', default='../Checkpoints/', help='Path to save Checkpoints, Default: ../Checkpoints/')
+
 	Args = Parser.parse_args()
 	# ModelPath = Args.ModelPath
 	ModelType = Args.ModelType
+	BasePath = Args.BasePath
+	CheckPointPath = Args.CheckPointPath
 	#first='/home/kartikmadhira/CMSC733/YourDirectoryID_p1/Phase2/Data/Val/'+str(rand)+'.jpg'
 	
-	getImages('new')
+	cropSize=128
+	#range for perturbing the corners to get the homographies [-rho,+rho]
+	rho=16
+	#resize shape
+	resize=(320,240)
+	print('running supervise')
+	#number of train sets to be made
+	numTrainData=128
+	#limit of the number of the images in the train set
+	numImagesLimit=1000
+	#file path
+	filePath=BasePath+'/Test/'
+	if not os.path.exists(BasePath+'/supervised/'):
+		os.makedirs(BasePath+'/supervised/')
+	saveDest=BasePath+'/supervised/'
+	
+	generateImagesSupervised(cropSize,rho,resize,numTrainData,numImagesLimit,filePath,saveDest)
+
+	# Setup all needed parameters including file reading
+	DirNamesTrain, SaveCheckPoint, ImageSize, NumTrainSamples, TrainLabels, NumClasses = SetupAll(BasePath, CheckPointPath)
+
+	getImages(DirNamesTrain, SaveCheckPoint, ImageSize, NumTrainSamples, TrainLabels, NumClasses,'new')
 
 	 
 if __name__ == '__main__':
