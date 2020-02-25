@@ -82,6 +82,6 @@ def getImages(cropSize,rho,resize,dataList,numTrainData,saveDest):
 
 #get the files
 
-def generateImagesUnsupervised(cropSize,rho,resize,numTrainData,numImagesLimit,filePath,saveDest):
+def genUnsup(cropSize,rho,resize,numTrainData,numImagesLimit,filePath,saveDest):
     files=loadTrainList(filePath,numTrainData,numImagesLimit)
     getImages(cropSize,rho,resize,files,numTrainData,saveDest)

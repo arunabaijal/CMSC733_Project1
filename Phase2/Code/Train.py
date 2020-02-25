@@ -142,7 +142,7 @@ def PrettyPrint(NumEpochs, DivTrain, MiniBatchSize, NumTrainSamples, LatestFile)
 		print('Loading latest checkpoint with the name ' + LatestFile)              
 
 
-def TrainOperationUnsupervised(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,NumTrainSamples, ImageSize,
+def trainUnsup(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,NumTrainSamples, ImageSize,
 				   NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
 				   DivTrain, LatestFile, BasePath, LogsPath, ModelType,TrainingSampleSize):
 	
@@ -204,7 +204,7 @@ def TrainOperationUnsupervised(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,Nu
 			Writer.add_summary(Summary_epoch,Epochs)
 			Writer.flush()
 
-def TrainOperationSupervised(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, ImageSize,
+def trainSup(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, ImageSize,
 				   NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
 				   DivTrain, LatestFile, BasePath, LogsPath, ModelType,TrainingSampleSize):
 	"""
@@ -303,7 +303,7 @@ def main():
 	
 	Parser.add_argument('--BasePath', default='../Data', help='Base path of images, Default:/media/nitin/Research/Homing/SpectralCompression/COCO')
 	Parser.add_argument('--CheckPointPath', default='../Checkpoints/', help='Path to save Checkpoints, Default: ../Checkpoints/')
-	Parser.add_argument('--ModelType', default='Sup', help='Model type, Supervised or Unsupervised? Choose from Sup and Unsup, Default:Unsup')
+	Parser.add_argument('--ModelType', default='Unsup', help='Model type, Supervised or Unsupervised? Choose from Sup and Unsup, Default:Unsup')
 	Parser.add_argument('--TrainingSampleSize', type=int, default=127, help='Number of examples to train on from the train images set')
 	Parser.add_argument('--NumEpochs', type=int, default=50, help='Number of Epochs to Train for, Default:50')
 	Parser.add_argument('--DivTrain', type=int, default=1, help='Factor to reduce Train data by per epoch, Default:1')
@@ -335,6 +335,10 @@ def main():
 	PrettyPrint(NumEpochs, DivTrain, MiniBatchSize, NumTrainSamples, LatestFile)
 
 	if (ModelType=='Unsup'):
+		
+		ImgPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 128, 128, 2))
+		CornerPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 8))
+		I2PH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 128, 128,1))
 		# Define PlaceHolder variables for Input and Predicted output
 		cropSize=128
 		rho=16
@@ -348,16 +352,14 @@ def main():
 			os.makedirs(BasePath+'/unsupervised/')
 		saveDest=BasePath+'/unsupervised/'
 		
-		generateImagesUnsupervised(cropSize,rho,resize,numTrainData,numImagesLimit,filePath,saveDest)		
+		genUnsup(cropSize,rho,resize,numTrainData,numImagesLimit,filePath,saveDest)		
 		
-		ImgPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 128, 128, 2))
-		CornerPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 8))
-		I2PH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 128, 128,1))
-		
-		TrainOperationUnsupervised(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,126, ImageSize,
+		trainUnsup(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,126, ImageSize,
 					   NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
 					   DivTrain, LatestFile, BasePath, LogsPath, ModelType,TrainingSampleSize)
 	else:
+		ImgPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 128, 128, 2))
+		LabelPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 8)) # OneHOT labels
 		cropSize=128
 		#range for perturbing the corners to get the homographies [-rho,+rho]
 		rho=16
@@ -376,10 +378,8 @@ def main():
 		
 		genSup(cropSize,rho,resize,numTrainData,numImagesLimit,filePath,saveDest)
 		
-		ImgPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 128, 128, 2))
-		LabelPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 8)) # OneHOT labels
 		BasePath=saveDest
-		TrainOperationSupervised(ImgPH, LabelPH, DirNamesTrain, TrainLabels,40000, ImageSize,
+		trainSup(ImgPH, LabelPH, DirNamesTrain, TrainLabels,40000, ImageSize,
 				   NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
 				   DivTrain, LatestFile, BasePath, LogsPath, ModelType,TrainingSampleSize=TrainingSampleSize)
 		
