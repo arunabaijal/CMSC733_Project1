@@ -1,214 +1,117 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python2
 """
-CMSC733 Spring 2019: Classical and Deep Learning Approaches for
-Geometric Computer Vision
-Homework 0: Alohomora: Phase 2 Starter Code
-
-
-Author(s):
-Nitin J. Sanket (nitinsan@terpmail.umd.edu)
-PhD Candidate in Computer Science,
-University of Maryland, College Park
+CMSC 733 Porject 1
+Created on Mon Feb 24 23:00:00 2020
+@author: Ashwin Varghese Kuruttukulam
+         Aruna Baijal
 """
-
-
-# Dependencies:
-# opencv, do (pip install opencv-python)
-# skimage, do (apt install python-skimage)
-
-import tensorflow as tf
 import cv2
-import os
-import sys
-import glob
-# import Misc.ImageUtils as iu
-import random
-from skimage import data, exposure, img_as_float
-import matplotlib.pyplot as plt
-from Network.Network import HomographyModel
-from Misc.MiscUtils import *
 import numpy as np
-import time
-import argparse
-import shutil
-from StringIO import StringIO
-import string
-import math as m
-from tqdm import tqdm
-from Misc.TFSpatialTransformer import *
-import pickle
+import random
+import matplotlib.pyplot as plt
+import os 
+import time 
+import tensorflow as tf
+from Network.Network import HomographyModel
+import argparse 
 
 
-# Don't generate pyc codes
-sys.dont_write_bytecode = True
+def runTest(firstImage,ModelPath):
+    #load image
+    cropSize=128
+    resize=(320,240)
+    rho=16
+    firstI=cv2.imread(firstImage)
 
-def SetupAll(BasePath):
-	"""
-	Inputs: 
-	BasePath - Path to images
-	Outputs:
-	ImageSize - Size of the Image
-	DataPath - Paths of all images where testing will be run on
-	"""
-	DIR = BasePath+'/Test_Gen'
-	nImages =  len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))])   
-	NumTrainSamples = nImages/2
-	temp_img = cv2.imread(BasePath+'/Test_Gen/1_raw_image.jpg')
-	ImageSize = (temp_img.shape[0],temp_img.shape[1],2*temp_img.shape[2])
-	DataPath = []
+    
+    image1=cv2.imread(firstImage,cv2.IMREAD_GRAYSCALE)
+    image=cv2.resize(image1,resize)
+        #get a random x and y location that does not have the borders
+    #x is Y and y is X!
+    getLocX=random.randint(105,160)
+    getLocY=random.randint(105,225)
+    #crop the image
+    patchA=image[getLocX-int(cropSize/2):getLocX+int(cropSize/2),getLocY-int(cropSize/2):getLocY+int(cropSize/2)]
+    
+    #perturb image randomly and apply homography
+    pts1=np.float32([[getLocY-cropSize/2+random.randint(-rho,rho),getLocX-cropSize/2+random.randint(-rho,rho)],
+      [getLocY+cropSize/2+random.randint(-rho,rho),getLocX-cropSize/2+random.randint(-rho,rho)],
+      [getLocY+cropSize/2+random.randint(-rho,rho),getLocX+cropSize/2+random.randint(-rho,rho)],
+      [getLocY-cropSize/2+random.randint(-rho,rho),getLocX+cropSize/2+random.randint(-rho,rho)]])
+    pts2=np.float32([[getLocY-cropSize/2,getLocX-cropSize/2],
+      [getLocY+cropSize/2,getLocX-cropSize/2],
+      [getLocY+cropSize/2,getLocX+cropSize/2],
+      [getLocY-cropSize/2,getLocX+cropSize/2]])
+    
+    #get the perspective transform
+    hAB=cv2.getPerspectiveTransform(pts2,pts1)
+        #get the inverse
+    hBA=np.linalg.inv(hAB)
+        #get the warped image from the inverse homography generated in the dataset
+    warped=np.asarray(cv2.warpPerspective(image,hAB,resize)).astype(np.uint8)
+        #get the last patchB at the same location but on the warped image.
+    patchB=warped[getLocX-int(cropSize/2):getLocX+int(cropSize/2),getLocY-int(cropSize/2):getLocY+int(cropSize/2)]
+    
+    
+    cv2.line(firstI,   (pts1[0][0],pts1[0][1]),(pts1[1][0],pts1[1][1]), (255,0,0), 3)
+    cv2.line(firstI,  (pts1[1][0],pts1[1][1]),(pts1[2][0],pts1[2][1]), (255,0,0), 3)
+    cv2.line(firstI,  (pts1[2][0],pts1[2][1]),(pts1[3][0],pts1[3][1]), (255,0,0), 3)
+    cv2.line(firstI,  (pts1[3][0],pts1[3][1]),(pts1[0][0],pts1[0][1]), (255,0,0), 3)
 
-	for k in range(NumTrainSamples):
-		DataPath.append('Test_Gen/'+str(k+1))
-
-	return ImageSize, DataPath
-
-
-def SetupInputs(BasePath):
-	DIR = BasePath+'/Test_Gen'
-	nImages =  len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))])   
-	NumTrainSamples = nImages/2
-
-	# reading labels pickle file
-	with open(BasePath+'/labels_homography_train', 'rb') as f:
-		dict_labels = pickle.load(f)
-	TrainLabels = []
-	DirNamesTrain = []
-	temp_img = cv2.imread(BasePath+'/Test_Gen/1_raw_image.jpg')
-	ImageSize = (temp_img.shape[0],temp_img.shape[1],2*temp_img.shape[2])
-	for k in range(NumTrainSamples):
-		TrainLabels.append(dict_labels[str(k+1)])
-		DirNamesTrain.append('Test_Gen/'+str(k+1))
-	NumClasses = 8
-	SaveCheckPoint = 100
-	return DirNamesTrain, SaveCheckPoint, ImageSize, NumTrainSamples, TrainLabels, NumClasses
-
-
-
-def ReadImages(ImageSize, BasePath, dataPath):
-	"""
-	Inputs: 
-	ImageSize - Size of the Image
-	DataPath - Paths of all images where testing will be run on
-	Outputs:
-	I1Combined - I1 image after any standardization and/or cropping/resizing to ImageSize
-	I1 - Original I1 image for visualization purposes only
-	"""
-	
-	RawImageName = BasePath + os.sep + dataPath + '_raw_image.jpg'   
-	WarpedImageName = BasePath + os.sep + dataPath + '_warpped_image.jpg'
-	
-	I1_1 = np.float32(cv2.imread(RawImageName))
-	I1_2 = np.float32(cv2.imread(WarpedImageName))
-	I1 = np.dstack((I1_1, I1_2))
-	
-	if(I1 is None):
-		# OpenCV returns empty list if image is not read! 
-		print('ERROR: Image I1 cannot be read')
-		sys.exit()
-		
-	##########################################################################
-	# Add any standardization or cropping/resizing if used in Training here!
-	##########################################################################
-
-	# I1S = iu.StandardizeInputs(np.float32(I1))
-
-	# I1Combined = np.expand_dims(I1S, axis=0)
-
-	return [I1]
-				
-
-def TestOperation(BasePath,ImgPH, ImageSize, ModelPath, DataPath, LabelsPathPred):
-	"""
-	Inputs: 
-	ImgPH is the Input Image placeholder
-	ImageSize is the size of the image
-	ModelPath - Path to load trained model from
-	DataPath - Paths of all images where testing will be run on
-	LabelsPathPred - Path to save predictions
-	Outputs:
-	Predictions written to ./TxtFiles/PredOut.txt
-	"""
-	# Length = ImageSize[0]
-	# Predict output with forward pass, MiniBatchSize for Test is 1
-	prLogits = HomographyModel(ImgPH, ImageSize, 1)
-
-	# Setup Saver
-	Saver = tf.train.Saver()
-	with open('../Data/labels_homography_test', 'rb') as f:
-		testing_labels = pickle.load(f)
-
-	
-	with tf.Session() as sess:
-		Saver.restore(sess, ModelPath)
-		print('Number of parameters in this model are %d ' % np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
-		
-		OutSaveT = open(LabelsPathPred, 'w')
-
-		for count in tqdm(range(np.size(DataPath))):       
-			Img = ReadImages(ImageSize, BasePath, DataPath[count])
-			print(DataPath[count])
-			FeedDict = {ImgPH: Img}
-			PredT = sess.run(prLogits, feed_dict=FeedDict)
-
-			OutSaveT.write(str(PredT)+'\n')
-			
-		OutSaveT.close()
+    ImageSize = [128, 128, 2]
+    ImgPH=tf.placeholder(tf.float32, shape=(1, 128, 128, 2))
+    
+    
+    H4pt = HomographyModel(ImgPH, ImageSize, 1)
+    Saver = tf.train.Saver()
+  
+    with tf.Session() as sess:
+        Saver.restore(sess, ModelPath)
+        print('Number of parameters in this model are %d ' % np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
+        
+        Img=np.dstack((patchA,patchB))
+        image=Img
+        Img=np.array(Img).reshape(1,128,128,2)
+        
+        FeedDict = {ImgPH: Img}
+        PredT = sess.run(H4pt,FeedDict)
+    
+    newPointsDiff=PredT.reshape(4,2)
+    print(newPointsDiff)
+    pts2=np.float32([[getLocY-cropSize/2,getLocX-cropSize/2],
+          [getLocY+cropSize/2,getLocX-cropSize/2],
+          [getLocY+cropSize/2,getLocX+cropSize/2],
+          [getLocY-cropSize/2,getLocX+cropSize/2]])
+    pts1=pts2+newPointsDiff
+    H4pts=pts2-pts1
+    hAB=cv2.getPerspectiveTransform(pts2,pts1)
+    hBA=np.linalg.inv(hAB)
 
 
-def ReadLabels(LabelsPathTest, LabelsPathPred):
-	if(not (os.path.isfile(LabelsPathTest))):
-		print('ERROR: Test Labels do not exist in '+LabelsPathTest)
-		sys.exit()
-	else:
-		LabelTest = open(LabelsPathTest, 'r')
-		LabelTest = LabelTest.read()
-		LabelTest = map(float, LabelTest.split())
+    cv2.line(firstI,   (pts1[0][0],pts1[0][1]),(pts1[1][0],pts1[1][1]), (0,0,255), 3)
+    cv2.line(firstI,  (pts1[1][0],pts1[1][1]),(pts1[2][0],pts1[2][1]),(0,0,255), 3)
+    cv2.line(firstI,  (pts1[2][0],pts1[2][1]),(pts1[3][0],pts1[3][1]),(0,0,255), 3)
+    cv2.line(firstI,  (pts1[3][0],pts1[3][1]),(pts1[0][0],pts1[0][1]), (0,0,255), 3)
+    
+    cv2.imwrite('result'+'.png',firstI)
 
-	if(not (os.path.isfile(LabelsPathPred))):
-		print('ERROR: Pred Labels do not exist in '+LabelsPathPred)
-		sys.exit()
-	else:
-		LabelPred = open(LabelsPathPred, 'r')
-		LabelPred = LabelPred.read()
-		LabelPred = map(float, LabelPred.split())
-		
-	return LabelTest, LabelPred
 
-		
 def main():
-	"""
-	Inputs: 
-	None
-	Outputs:
-	Prints out the confusion matrix with accuracy
-	"""
+    Parser = argparse.ArgumentParser()
+    
+    Parser.add_argument('--Image', default='../Data/Train/141.jpg', help='Images')
+    Parser.add_argument('--ModelPath', default='../Checkpoints/49model.ckpt', help='Path to save Checkpoints, Default: ../Checkpoints/')
+    Parser.add_argument('--ModelType', default='Sup', help='Model type, Supervised or Unsupervised? Choose from Sup and Unsup, Default:Unsup')
+    
+    
+    Args = Parser.parse_args()
+    Image = Args.Image
+    ModelPath = Args.ModelPath
+    ModelType = Args.ModelType
+    runTest(Image,ModelPath)
 
-	# Parse Command Line arguments
-	Parser = argparse.ArgumentParser()
-	Parser.add_argument('--ModelPath', dest='ModelPath', default='../Checkpoints/49model.ckpt', help='Path to load latest model from, Default:ModelPath')
-	Parser.add_argument('--BasePath', dest='BasePath', default='../Data', help='Path to load images from, Default:BasePath')
-	Parser.add_argument('--LabelsPath', dest='LabelsPath', default='./TxtFiles/LabelsTest.txt', help='Path of labels file, Default:./TxtFiles/LabelsTest.txt')
-	Args = Parser.parse_args()
-	ModelPath = Args.ModelPath
-	BasePath = Args.BasePath
-	LabelsPath = Args.LabelsPath
-
-	# Setup all needed parameters including file reading
-	ImageSize, DataPath = SetupAll(BasePath)
-
-	# Define PlaceHolder variables for Input and Predicted output
-	ImgPH = tf.placeholder(tf.float32, shape=(1, ImageSize[0], ImageSize[1], ImageSize[2]))
-	LabelsPathPred = './TxtFiles/PredOut.txt' # Path to save predicted labels
-
-	TestOperation(BasePath,ImgPH, ImageSize, ModelPath, DataPath, LabelsPathPred)
-
-	# Plot Confusion Matrix
-	# LabelsTrue, LabelsPred = ReadLabels(LabelsPath, LabelsPathPred)
-	# print(LabelsTrue[0])
-	# print(LabelsPred[0])
-	# ConfusionMatrix(LabelsTrue, LabelsPred)
-	 
+     
 if __name__ == '__main__':
-	main()
- 
+    main()
+
+    

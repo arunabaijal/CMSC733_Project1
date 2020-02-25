@@ -1,74 +1,79 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python2
 """
-CMSC733 Spring 2019: Classical and Deep Learning Approaches for
-Geometric Computer Vision
-Project 1: MyAutoPano: Phase 2 Starter Code
-
-
-Author(s):
-Nitin J. Sanket (nitinsan@terpmail.umd.edu)
-PhD Candidate in Computer Science,
-University of Maryland, College Park
+CMSC 733 Porject 1
+Created on Mon Feb 24 23:00:00 2020
+@author: Ashwin Varghese Kuruttukulam
+		 Aruna Baijal
 """
-
-# Dependencies:
-# opencv, do (pip install opencv-python)
-# skimage, do (apt install python-skimage)
-# termcolor, do (pip install termcolor)
-
 import tensorflow as tf
 import cv2
 import sys
 import os
 import glob
-# import Misc.ImageUtils as iu
+import math
 import random
 from skimage import data, exposure, img_as_float
 import matplotlib.pyplot as plt
-from Network.Network import HomographyModel
+from Network.Network import  HomographyModel
+from Network.Network import  Unsupervised_HomographyModel
+import numpy as np
+import argparse
+from termcolor import colored, cprint
+import math as m
+from tqdm import tqdm
+from utils.DataGenSup import genSup
+from utils.DataGenUnsup import genUnsup
 from Misc.MiscUtils import *
 from Misc.DataUtils import *
 import numpy as np
 import time
 import argparse
 import shutil
-#from StringIO import StringIO
 import string
 from termcolor import colored, cprint
 import math as m
 from tqdm import tqdm
 from Misc.TFSpatialTransformer import *
-import os, os.path
 import pickle
 
 # Don't generate pyc codes
 sys.dont_write_bytecode = True
 
-def SetupInputs(BasePath):
-	DIR = BasePath+'/Train_Gen'
-	nImages =  len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))])	
-	NumTrainSamples = int(nImages/2)
 
-	# reading labels pickle file
-	with open(BasePath+'/labels_homography_train', 'rb') as f:
-		dict_labels = pickle.load(f)
-	TrainLabels = []
-	DirNamesTrain = []
-	temp_img = cv2.imread(BasePath+'/Train_Gen/1_raw_image.jpg')
-	ImageSize = (temp_img.shape[0],temp_img.shape[1],2*temp_img.shape[2])
-	for k in range(int(NumTrainSamples)):
-		TrainLabels.append(dict_labels[str(k+1)])
-		DirNamesTrain.append('Train_Gen/'+str(k+1))
-	NumClasses = 8
-	SaveCheckPoint = 100
-	return DirNamesTrain, SaveCheckPoint, ImageSize, NumTrainSamples, TrainLabels, NumClasses
-
-
-def euclidean_distance(y_true, y_pred):
-	return (y_pred - y_true)
+def BatchGenSup(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize,TrainingSampleSize):
+	BatchInput = []
+	BatchLabel = []
 	
-def GenerateBatch(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize):
+	ImageNum = 0
+	while ImageNum < MiniBatchSize:
+		RandIdx = random.randint(0, TrainingSampleSize-1)
+		
+		RandImagename=BasePath+'/data/'+str(RandIdx)+'.npz'        
+		ImageNum += 1
+		npzfile=np.load(RandImagename)
+		image=npzfile['arr_0']
+		##########################################################
+		# Add any standardization or data augmentation here!
+		##########################################################
+
+		I1 = np.float32(image)
+		I1=(I1-np.mean(I1))/255
+		Label = BasePath+'/labels/'+str(RandIdx)+'.npz' 
+		npzfile=np.load(Label)
+		labelRegress=npzfile['arr_0']
+		labelRegress.resize((8,1))
+		labelRegress=labelRegress[:,0]
+		# Append All Images and Mask
+		BatchInput.append(I1)
+		BatchLabel.append(labelRegress)
+		
+	return BatchInput, BatchLabel
+
+def BatchGenUnsup(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize,TrainingSampleSize):
+	
+	#get the basepath to the folder data/ where both train images and labels are present
+	
+	
 	"""
 	Inputs: 
 	BasePath - Path to COCO folder without "/" at the end
@@ -79,42 +84,50 @@ def GenerateBatch(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize
 	ImageSize - Size of the Image
 	MiniBatchSize is the size of the MiniBatch
 	Outputs:
-	I1Batch - Batch of images
-	LabelBatch - Batch of one-hot encoded labels 
+	BatchInput - Batch of images
+	BatchLabel - Batch of one-hot encoded labels 
 	"""
-	I1Batch = []
-	LabelBatch = []
+	stackedDataBatch=[]
+	IABatch = []
+	cornerBatch = []
 	
 	ImageNum = 0
 	while ImageNum < MiniBatchSize:
 		# Generate random image
-		RandIdx = random.randint(0, len(DirNamesTrain)-1)
+		RandIdx = random.randint(0, TrainingSampleSize-1)
 		
-		RandRawImageName = BasePath + os.sep + DirNamesTrain[RandIdx] + '_raw_image.jpg'   
-		RandWarpedImageName = BasePath + os.sep + DirNamesTrain[RandIdx] + '_warpped_image.jpg'   
+		RandImagename=BasePath+'/unsupervised/data/'+str(RandIdx)+'.npz'        
 		ImageNum += 1
-		
+		npzfile=np.load(RandImagename)
+		image=npzfile['arr_0']
 		##########################################################
 		# Add any standardization or data augmentation here!
 		##########################################################
-
-		I1_1 = np.float32(cv2.imread(RandRawImageName))
-		I1_2 = np.float32(cv2.imread(RandWarpedImageName))
-		I1 = np.dstack((I1_1, I1_2))
-		# Label = convertToOneHot(TrainLabels[RandIdx], 10)
-		Label = TrainLabels[RandIdx]
-		# print('len(TrainLabels)')
-		# print(len(TrainLabels))
-		# print('len(DirNamesTrain)')
-		# print(len(DirNamesTrain))
-		# # Append All Images and Mask
-		# print(RandIdx)
-		# print(I1)
-		# print(Label)
-		I1Batch.append(I1)
-		LabelBatch.append(Label)
+		I1 = np.float32(image)
+		I1=(I1-np.mean(I1))/255
+		#print(I1.shape)
 		
-	return I1Batch, LabelBatch
+		RandIAname=BasePath+'/unsupervised/Ia/'+str(RandIdx)+'.npz'        
+		npzfile=np.load(RandIAname)
+		image=npzfile['arr_0']
+		Ia = np.float32(image)
+		Ia=(Ia-np.mean(Ia))/255
+			  
+		
+		Label = BasePath+'/unsupervised/cornerData/'+str(RandIdx)+'.npz' 
+		npzfile=np.load(Label)
+		labelRegress=npzfile['arr_0']
+		# Append All Images and Mask
+		labelRegress.resize((8,1))
+		labelRegress=labelRegress[:,0]
+		stackedDataBatch.append(I1)
+
+		#print(Ia.shape)	
+		Ia.resize((128,128,1))		
+		IABatch.append(Ia)
+		cornerBatch.append(labelRegress)
+
+	return stackedDataBatch, IABatch , cornerBatch
 
 
 def PrettyPrint(NumEpochs, DivTrain, MiniBatchSize, NumTrainSamples, LatestFile):
@@ -128,10 +141,72 @@ def PrettyPrint(NumEpochs, DivTrain, MiniBatchSize, NumTrainSamples, LatestFile)
 	if LatestFile is not None:
 		print('Loading latest checkpoint with the name ' + LatestFile)              
 
-	
-def TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, ImageSize,
+
+def TrainOperationUnsupervised(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,NumTrainSamples, ImageSize,
 				   NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
-				   DivTrain, LatestFile, BasePath, LogsPath, ModelType):
+				   DivTrain, LatestFile, BasePath, LogsPath, ModelType,TrainingSampleSize):
+	
+	pred_I2,I2 = Unsupervised_HomographyModel(ImgPH, CornerPH, I2PH,None, ImageSize, MiniBatchSize)
+
+	with tf.name_scope('Loss'):
+		loss = tf.reduce_mean(tf.abs(pred_I2 - I2))
+	with tf.name_scope('Adam'):
+		Optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(loss)
+
+	# Tensorboard
+	# Create a summary to monitor loss tensor
+	EpochLossPH = tf.placeholder(tf.float32, shape=None)
+	loss_summary = tf.summary.scalar('LossEveryIter', loss)
+	epoch_loss_summary = tf.summary.scalar('LossPerEpoch', EpochLossPH)
+	MergedSummaryOP1 = tf.summary.merge([loss_summary])
+	MergedSummaryOP2 = tf.summary.merge([epoch_loss_summary])
+
+	# Setup Saver
+	Saver = tf.train.Saver(max_to_keep=NumEpochs)
+	with tf.Session() as sess:       
+		if LatestFile is not None:
+			Saver.restore(sess, CheckPointPath + LatestFile + '.ckpt')
+			# Extract only numbers from the name
+			StartEpoch = int(''.join(c for c in LatestFile.split('a')[0] if c.isdigit()))
+			print('Loaded latest checkpoint with the name ' + LatestFile + '....')
+		else:
+			sess.run(tf.global_variables_initializer())
+			StartEpoch = 0
+			print('New model initialized....')
+
+		# Tensorboard
+		Writer = tf.summary.FileWriter(LogsPath, graph=tf.get_default_graph())
+		LossList = []
+
+		for Epochs in tqdm(range(StartEpoch, NumEpochs)):
+			NumIterationsPerEpoch = int(NumTrainSamples/MiniBatchSize/DivTrain)
+			epoch_loss=0
+			BatchLosses=[]
+			for PerEpochCounter in tqdm(range(NumIterationsPerEpoch)):
+				patchBatch, IABatch,cornerBatch= BatchGenUnsup(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize,TrainingSampleSize)
+				FeedDict = {ImgPH: patchBatch, CornerPH: cornerBatch, I2PH: IABatch}
+				_, LossThisBatch, Summary = sess.run([Optimizer, loss, MergedSummaryOP1], feed_dict=FeedDict)
+				BatchLosses.append(LossThisBatch)
+				epoch_loss = epoch_loss + LossThisBatch
+
+				# Tensorboard
+				Writer.add_summary(Summary, Epochs*NumIterationsPerEpoch + PerEpochCounter)
+			  
+
+			LossList.append(sum(BatchLosses)/len(BatchLosses))
+			with open('TrainingLossData.pkl', 'wb') as f:
+				pickle.dump([LossList], f)
+
+			SaveName = CheckPointPath + str(Epochs) + 'model.ckpt'
+			Saver.save(sess, save_path=SaveName)
+			print('\n' + SaveName + ' Model Saved...')
+			Summary_epoch = sess.run(MergedSummaryOP2,feed_dict={EpochLossPH: epoch_loss})
+			Writer.add_summary(Summary_epoch,Epochs)
+			Writer.flush()
+
+def TrainOperationSupervised(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, ImageSize,
+				   NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
+				   DivTrain, LatestFile, BasePath, LogsPath, ModelType,TrainingSampleSize):
 	"""
 	Inputs: 
 	ImgPH is the Input Image placeholder
@@ -153,42 +228,31 @@ def TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, 
 	Saves Trained network in CheckPointPath and Logs to LogsPath
 	"""      
 	# Predict output with forward pass
-	prLogits = HomographyModel(ImgPH, ImageSize, MiniBatchSize)
+	H4pt = HomographyModel(ImgPH, ImageSize, MiniBatchSize)
 
 	with tf.name_scope('Loss'):
 		###############################################
 		# Fill your loss function of choice here!
 		###############################################
-		# Change loss funciton to eucledian!!!
-		# cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels = LabelPH, logits = prLogits)
-		#loss = tf.nn.l2_loss(prLogits-LabelPH)
-		loss = tf.sqrt(tf.reduce_sum((tf.squared_difference(prLogits,LabelPH))))
-		# cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels = LabelPH, logits = prLogits)
-		# loss = tf.reduce_mean(cross_entropy)
-
+		#LabelPH=tf.reshape(LabelPH,[MiniBatchSize,LabelPH.shape[1:4].num_elements()])
+		shapeH4pt=tf.shape(H4pt)
+		shapeLabel=tf.shape(LabelPH)
+		loss = tf.sqrt(tf.reduce_sum((tf.squared_difference(H4pt,LabelPH))))
 	with tf.name_scope('Adam'):
 		###############################################
 		# Fill your optimizer of choice here!
 		###############################################
-		Optimizer = tf.train.AdamOptimizer(learning_rate = 1e-3).minimize(loss)
-
-	# with tf.name_scope('Accuracy'):
-	# 	prSoftMaxDecoded = tf.argmax(prSoftMax, axis=1)
-	# 	LabelDecoded = tf.argmax(LabelPH, axis=1)
-	# 	Acc = tf.reduce_mean(tf.cast(tf.math.equal(prSoftMaxDecoded, LabelDecoded), dtype=tf.float32))
-   
+		Optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss)
 
 	# Tensorboard
 	# Create a summary to monitor loss tensor
 	tf.summary.scalar('LossEveryIter', loss)
-	# tf.summary.scalar('Accuracy', Acc)
 	# tf.summary.image('Anything you want', AnyImg)
-	# Merge all summaries into a single operationgoogel
+	# Merge all summaries into a single operation
 	MergedSummaryOP = tf.summary.merge_all()
 
 	# Setup Saver
-	Saver = tf.train.Saver()
-	
+	Saver = tf.train.Saver(max_to_keep=NumEpochs)
 	with tf.Session() as sess:       
 		if LatestFile is not None:
 			Saver.restore(sess, CheckPointPath + LatestFile + '.ckpt')
@@ -202,55 +266,30 @@ def TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, 
 
 		# Tensorboard
 		Writer = tf.summary.FileWriter(LogsPath, graph=tf.get_default_graph())
-		
-		LossList = [] 
-		TrainingAccuracyList = [] 	
+		LossList = []
 		for Epochs in tqdm(range(StartEpoch, NumEpochs)):
 			NumIterationsPerEpoch = int(NumTrainSamples/MiniBatchSize/DivTrain)
-			# BatchAccuracies = []
-			BatchLosses = []
+			appendAcc=[]
+			BatchLosses=[]
 			for PerEpochCounter in tqdm(range(NumIterationsPerEpoch)):
-				I1Batch, LabelBatch = GenerateBatch(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize)
-				# print('I1Batch')
-				# print(I1Batch)
-				# print('LabelBatch')
-				# print(LabelBatch)
-				FeedDict = {ImgPH: I1Batch, LabelPH: LabelBatch}
-				# _, LossThisBatch, Summary = sess.run([Optimizer, loss, MergedSummaryOP], feed_dict=FeedDict)
-				temp, LossThisBatch, Summary = sess.run([Optimizer, loss, MergedSummaryOP], feed_dict=FeedDict)
-				# batch_accuracy, temp, LossThisBatch, Summary = sess.run([Acc,Optimizer, loss, MergedSummaryOP], feed_dict=FeedDict)
-				# BatchAccuracies.append(float(batch_accuracy))
-				BatchLosses.append(float(LossThisBatch))
-				# Save checkpoint every some SaveCheckPoint's iterations
-				# if PerEpochCounter % SaveCheckPoint == 0:
-				# 	# Save the Model learnt in this epoch
-				# 	SaveName =  CheckPointPath + str(Epochs) + 'a' + str(PerEpochCounter) + 'model.ckpt'
-				# 	Saver.save(sess,  save_path=SaveName)
-				# 	print('\n' + SaveName + ' Model Saved...')
+				BatchInput, BatchLabel = BatchGenSup(BasePath, DirNamesTrain, TrainLabels, ImageSize, MiniBatchSize,TrainingSampleSize)
+				FeedDict = {ImgPH: BatchInput, LabelPH: BatchLabel}
+				_, LossThisBatch, Summary = sess.run([Optimizer, loss, MergedSummaryOP], feed_dict=FeedDict)
+				BatchLosses.append(LossThisBatch)
 
 				# Tensorboard
 				Writer.add_summary(Summary, Epochs*NumIterationsPerEpoch + PerEpochCounter)
 				# If you don't flush the tensorboard doesn't update until a lot of iterations!
 				Writer.flush()
-
+			
 			LossList.append(sum(BatchLosses)/len(BatchLosses))
-			# TrainingAccuracyList.append(sum(BatchAccuracies)/len(BatchAccuracies))
-			
-			with open('TrainingData.pkl', 'wb') as f:
+			with open('TrainingLossData_m.pkl', 'wb') as f:
 				pickle.dump([LossList], f)
-
-			#plt.plot(LossList)
-			#plt.plot(TrainingAccuracyList)
-			#plt.show()
-
-			print('Epoch Loss = ',LossList[-1])
-			# print('Epoch Accuracy = ',TrainingAccuracyList[-1])
-			
 			# Save model every epoch
 			SaveName = CheckPointPath + str(Epochs) + 'model.ckpt'
 			Saver.save(sess, save_path=SaveName)
 			print('\n' + SaveName + ' Model Saved...')
-			
+
 
 def main():
 	"""
@@ -261,12 +300,14 @@ def main():
 	"""
 	# Parse Command Line arguments
 	Parser = argparse.ArgumentParser()
+	
 	Parser.add_argument('--BasePath', default='../Data', help='Base path of images, Default:/media/nitin/Research/Homing/SpectralCompression/COCO')
 	Parser.add_argument('--CheckPointPath', default='../Checkpoints/', help='Path to save Checkpoints, Default: ../Checkpoints/')
-	Parser.add_argument('--ModelType', default='Unsup', help='Model type, Supervised or Unsupervised? Choose from Sup and Unsup, Default:Unsup')
+	Parser.add_argument('--ModelType', default='Sup', help='Model type, Supervised or Unsupervised? Choose from Sup and Unsup, Default:Unsup')
+	Parser.add_argument('--TrainingSampleSize', type=int, default=127, help='Number of examples to train on from the train images set')
 	Parser.add_argument('--NumEpochs', type=int, default=50, help='Number of Epochs to Train for, Default:50')
 	Parser.add_argument('--DivTrain', type=int, default=1, help='Factor to reduce Train data by per epoch, Default:1')
-	Parser.add_argument('--MiniBatchSize', type=int, default=1, help='Size of the MiniBatch to use, Default:1')
+	Parser.add_argument('--MiniBatchSize', type=int, default=32, help='Size of the MiniBatch to use, Default:1')
 	Parser.add_argument('--LoadCheckPoint', type=int, default=0, help='Load Model from latest Checkpoint from CheckPointsPath?, Default:0')
 	Parser.add_argument('--LogsPath', default='Logs/', help='Path to save Logs for Tensorboard, Default=Logs/')
 
@@ -274,6 +315,7 @@ def main():
 	NumEpochs = Args.NumEpochs
 	BasePath = Args.BasePath
 	DivTrain = float(Args.DivTrain)
+	TrainingSampleSize=Args.TrainingSampleSize
 	MiniBatchSize = Args.MiniBatchSize
 	LoadCheckPoint = Args.LoadCheckPoint
 	CheckPointPath = Args.CheckPointPath
@@ -281,10 +323,7 @@ def main():
 	ModelType = Args.ModelType
 
 	# Setup all needed parameters including file reading
-	# DirNamesTrain, SaveCheckPoint, ImageSize, NumTrainSamples, TrainLabels, NumClasses = SetupAll(BasePath, CheckPointPath)
-	DirNamesTrain, SaveCheckPoint, ImageSize, NumTrainSamples, TrainLabels, NumClasses = SetupInputs(BasePath)
-	# SetupInputs(BasePath)
-
+	DirNamesTrain, SaveCheckPoint, ImageSize, NumTrainSamples, TrainLabels, NumClasses = SetupAll(BasePath, CheckPointPath)
 
 	# Find Latest Checkpoint File
 	if LoadCheckPoint==1:
@@ -295,15 +334,57 @@ def main():
 	# Pretty print stats
 	PrettyPrint(NumEpochs, DivTrain, MiniBatchSize, NumTrainSamples, LatestFile)
 
-	# Define PlaceHolder variables for Input and Predicted output
-	ImgPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, ImageSize[0], ImageSize[1], ImageSize[2]))
-	LabelPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, NumClasses)) # OneHOT labels
-	
-	TrainOperation(ImgPH, LabelPH, DirNamesTrain, TrainLabels, NumTrainSamples, ImageSize,
+	if (ModelType=='Unsup'):
+		# Define PlaceHolder variables for Input and Predicted output
+		cropSize=128
+		rho=16
+		#resize shape
+		resize=(320,240)
+		numTrainData=128
+		numImagesLimit=5000
+		#file path
+		filePath=BasePath+'/Train/'
+		if not os.path.exists(BasePath+''):
+			os.makedirs(BasePath+'/unsupervised/')
+		saveDest=BasePath+'/unsupervised/'
+		
+		generateImagesUnsupervised(cropSize,rho,resize,numTrainData,numImagesLimit,filePath,saveDest)		
+		
+		ImgPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 128, 128, 2))
+		CornerPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 8))
+		I2PH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 128, 128,1))
+		
+		TrainOperationUnsupervised(ImgPH,CornerPH,I2PH,DirNamesTrain, TrainLabels,126, ImageSize,
+					   NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
+					   DivTrain, LatestFile, BasePath, LogsPath, ModelType,TrainingSampleSize)
+	else:
+		cropSize=128
+		#range for perturbing the corners to get the homographies [-rho,+rho]
+		rho=16
+		#resize shape
+		resize=(320,240)
+		print('running supervise')
+		#number of train sets to be made
+		numTrainData=128
+		#limit of the number of the images in the train set
+		numImagesLimit=5000
+		#file path
+		filePath=BasePath+'/Train/'
+		if not os.path.exists(BasePath+'/supervised/'):
+			os.makedirs(BasePath+'/supervised/')
+		saveDest=BasePath+'/supervised/'
+		
+		genSup(cropSize,rho,resize,numTrainData,numImagesLimit,filePath,saveDest)
+		
+		ImgPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 128, 128, 2))
+		LabelPH = tf.placeholder(tf.float32, shape=(MiniBatchSize, 8)) # OneHOT labels
+		BasePath=saveDest
+		TrainOperationSupervised(ImgPH, LabelPH, DirNamesTrain, TrainLabels,40000, ImageSize,
 				   NumEpochs, MiniBatchSize, SaveCheckPoint, CheckPointPath,
-				   DivTrain, LatestFile, BasePath, LogsPath, ModelType)
+				   DivTrain, LatestFile, BasePath, LogsPath, ModelType,TrainingSampleSize=TrainingSampleSize)
 		
 	
 if __name__ == '__main__':
 	main()
  
+

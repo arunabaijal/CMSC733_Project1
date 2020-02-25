@@ -1,9 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Fri Feb 22 22:33:42 2019
-
-@author: kartikmadhira
+CMSC 733 Porject 1
+Created on Mon Feb 24 23:00:00 2020
+@author: Ashwin Varghese Kuruttukulam
+         Aruna Baijal
 """
 
 import cv2
