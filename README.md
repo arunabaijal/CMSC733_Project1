@@ -9,6 +9,10 @@ run on cammand line
 `python Wrapper.py`
 This will generate the final panoramic image, intermediate panoramic images, matches between images before and after RANSAC and the ANMS corner detection for each image.
 
+Sample output:
+
+![Sample Output](https://github.com/arunabaijal/CMSC733_Project1/blob/master/sampleOutput.png)
+
 ## Phase 2
 To run Phase 2 for training, make sure Data exists in folder Data/Train.
 Then on command line run
